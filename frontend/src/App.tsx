@@ -226,7 +226,7 @@ export const App: React.FC = () => {
   };
 
   return (
-    <div className="flex min-h-screen bg-slate-950 text-slate-100 font-sans">
+    <div className="flex min-h-screen bg-[#f4f9ff] text-slate-900 font-sans">
       {/* Sidebar Navigation */}
       <Sidebar
         currentTab={currentTab}
@@ -251,9 +251,9 @@ export const App: React.FC = () => {
 
         {/* Global Toast Notification */}
         {notification && (
-          <div className="sticky top-16 z-30 px-6 py-2 bg-emerald-500/15 border-b border-emerald-500/30 text-emerald-300 text-xs font-mono flex items-center justify-between backdrop-blur-md">
+          <div className="sticky top-16 z-30 px-6 py-2.5 bg-sky-50 border-b border-sky-200 text-sky-900 text-xs font-mono font-semibold flex items-center justify-between backdrop-blur-md shadow-sm">
             <span>{notification}</span>
-            <button onClick={() => setNotification(null)} className="text-slate-400 hover:text-white">✕</button>
+            <button onClick={() => setNotification(null)} className="text-sky-700 hover:text-sky-950 font-bold">✕</button>
           </div>
         )}
 

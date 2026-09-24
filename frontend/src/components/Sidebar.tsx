@@ -42,19 +42,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
   ];
 
   return (
-    <aside className="w-64 bg-slate-900/90 border-r border-slate-800 flex flex-col justify-between shrink-0 h-screen sticky top-0 z-20 backdrop-blur-md">
+    <aside className="w-64 bg-white/95 border-r border-sky-100 flex flex-col justify-between shrink-0 h-screen sticky top-0 z-20 backdrop-blur-md shadow-sm">
       <div>
         {/* Brand Header */}
-        <div className="p-5 border-b border-slate-800/80 flex items-center gap-3">
-          <div className="h-10 w-10 rounded-xl bg-gradient-to-tr from-emerald-600 via-teal-500 to-cyan-400 flex items-center justify-center shadow-lg shadow-emerald-500/20">
-            <Waves className="h-6 w-6 text-slate-950 font-bold" />
+        <div className="p-5 border-b border-sky-100 flex items-center gap-3 bg-gradient-to-r from-sky-50/50 to-white">
+          <div className="h-10 w-10 rounded-xl bg-gradient-to-tr from-sky-600 via-blue-500 to-cyan-400 flex items-center justify-center shadow-md shadow-sky-500/20 text-white">
+            <Waves className="h-6 w-6 font-bold" />
           </div>
           <div>
             <div className="flex items-center gap-1.5">
-              <span className="font-extrabold text-base tracking-wider text-white">TERRAWAVE</span>
-              <span className="px-1.5 py-0.5 text-[10px] font-bold tracking-widest bg-emerald-500/20 text-emerald-400 rounded border border-emerald-500/30">AI</span>
+              <span className="font-extrabold text-base tracking-wider text-slate-900">TERRAWAVE</span>
+              <span className="px-1.5 py-0.5 text-[10px] font-bold tracking-widest bg-sky-100 text-sky-700 rounded border border-sky-200">AI</span>
             </div>
-            <p className="text-[11px] text-slate-400 font-medium">Smart Irrigation IoT</p>
+            <p className="text-[11px] text-sky-600/80 font-medium">Smart Irrigation IoT</p>
           </div>
         </div>
 
@@ -67,18 +67,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <button
                 key={item.id}
                 onClick={() => onSelectTab(item.id)}
-                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all ${
                   isActive
-                    ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 shadow-sm shadow-emerald-950/50'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+                    ? 'bg-sky-50 text-sky-700 font-bold border border-sky-200 shadow-sm shadow-sky-500/5'
+                    : 'text-slate-600 hover:text-sky-700 hover:bg-sky-50/60'
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  <Icon className={`h-4 w-4 ${isActive ? 'text-emerald-400' : 'text-slate-400'}`} />
+                  <Icon className={`h-4 w-4 ${isActive ? 'text-sky-600' : 'text-slate-400'}`} />
                   <span>{item.label}</span>
                 </div>
                 {item.badge && (
-                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-sky-100 text-sky-700 border border-sky-200">
                     {item.badge}
                   </span>
                 )}
@@ -89,15 +89,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </div>
 
       {/* Footer ESP32 Hardware Status */}
-      <div className="p-4 border-t border-slate-800/80 bg-slate-950/40">
+      <div className="p-4 border-t border-sky-100 bg-sky-50/50">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className={`h-2.5 w-2.5 rounded-full ${esp32Online ? 'bg-emerald-400 animate-pulse' : 'bg-rose-500'}`} />
-            <span className="text-xs text-slate-300 font-medium">
+            <span className={`h-2.5 w-2.5 rounded-full ${esp32Online ? 'bg-sky-500 animate-pulse' : 'bg-rose-500'}`} />
+            <span className="text-xs text-slate-700 font-semibold">
               {esp32Online ? 'ESP32-S3 Online' : 'ESP32 Offline'}
             </span>
           </div>
-          <span className="text-[10px] text-slate-500 font-mono">GPIO 1,4,5,6,7</span>
+          <span className="text-[10px] text-slate-400 font-mono">GPIO 1,4,5,6,7</span>
         </div>
       </div>
     </aside>

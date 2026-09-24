@@ -2,12 +2,10 @@ import React, { useState } from 'react';
 import {
   Play,
   Square,
-  Power,
-  RotateCcw,
-  ShieldCheck,
-  AlertOctagon,
   Clock,
-  Sparkles
+  Sparkles,
+  ShieldCheck,
+  AlertOctagon
 } from 'lucide-react';
 import { PumpStatus } from '../types';
 
@@ -31,7 +29,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
   onDisableAuto
 }) => {
   const [loading, setLoading] = useState<string | null>(null);
-  const [manualDuration, setManualDuration] = useState<number>(3);
+  const [manualDuration] = useState<number>(3);
 
   const handleAction = async (actionKey: string, fn: () => Promise<void>) => {
     try {
@@ -47,55 +45,55 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
   const isAuto = status.autoMode;
 
   return (
-    <div className="rounded-xl border border-slate-800 bg-slate-900/80 p-5 glass-panel flex flex-col justify-between">
+    <div className="rounded-xl border border-sky-100 bg-white p-5 glass-panel flex flex-col justify-between shadow-sm">
       <div>
-        <div className="flex items-center justify-between pb-4 border-b border-slate-800">
+        <div className="flex items-center justify-between pb-4 border-b border-slate-100">
           <div>
-            <h3 className="text-base font-bold text-white tracking-wide flex items-center gap-2">
-              <span>Irrigation & Pump Control Panel</span>
+            <h3 className="text-base font-extrabold text-slate-900 tracking-wide flex items-center gap-2">
+              <span>Irrigation &amp; Pump Control Panel</span>
             </h3>
-            <p className="text-xs text-slate-400 mt-0.5">
+            <p className="text-xs text-slate-500 mt-0.5">
               Direct actuator controls with mutual exclusion enforcement
             </p>
           </div>
 
           {/* Mode Pill */}
-          <span className={`px-2.5 py-1 text-xs font-bold rounded-full border ${
+          <span className={`px-3 py-1 text-xs font-bold rounded-full border shadow-sm ${
             isAuto
-              ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40 animate-pulse'
-              : 'bg-slate-800 text-slate-300 border-slate-700'
+              ? 'bg-sky-100 text-sky-800 border-sky-300'
+              : 'bg-slate-100 text-slate-700 border-slate-200'
           }`}>
             {isAuto ? 'MODE: AUTOMATIC (AI)' : 'MODE: MANUAL'}
           </span>
         </div>
 
         {/* Automatic Mode Switch Card */}
-        <div className="mt-4 p-3.5 rounded-lg border border-slate-800 bg-slate-950/60 flex items-center justify-between">
+        <div className="mt-4 p-3.5 rounded-xl border border-sky-100 bg-gradient-to-r from-sky-50/70 to-blue-50/40 flex items-center justify-between shadow-sm">
           <div className="flex items-center gap-3">
-            <div className={`p-2 rounded-lg ${isAuto ? 'bg-cyan-500/20 text-cyan-400' : 'bg-slate-800 text-slate-400'}`}>
+            <div className={`p-2 rounded-lg ${isAuto ? 'bg-sky-500 text-white shadow-sm' : 'bg-slate-100 text-slate-500'}`}>
               <Sparkles className="h-5 w-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-sm font-bold text-white">Closed-Loop Automatic Mode</span>
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 font-mono">
+                <span className="text-sm font-bold text-slate-900">Closed-Loop Automatic Mode</span>
+                <span className="text-[10px] px-2 py-0.5 rounded bg-white border border-sky-200 text-sky-800 font-mono font-bold">
                   &lt;30% start • &gt;80% stop
                 </span>
               </div>
-              <p className="text-xs text-slate-400 mt-0.5">
+              <p className="text-xs text-slate-600 mt-0.5">
                 AI continuously evaluates moisture deficits and triggers timed micro-irrigation
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-2">
             <button
               onClick={() => handleAction('auto_enable', onEnableAuto)}
               disabled={isAuto || loading === 'auto_enable'}
-              className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm ${
                 isAuto
-                  ? 'bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/20'
-                  : 'bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700'
+                  ? 'bg-sky-600 text-white shadow-sky-600/20'
+                  : 'bg-white text-slate-700 hover:bg-sky-50 border border-slate-200'
               }`}
             >
               ON
@@ -103,10 +101,10 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
             <button
               onClick={() => handleAction('auto_disable', onDisableAuto)}
               disabled={!isAuto || loading === 'auto_disable'}
-              className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
                 !isAuto
                   ? 'bg-slate-700 text-white'
-                  : 'bg-slate-800 text-slate-400 hover:bg-slate-700 border border-slate-700'
+                  : 'bg-white text-slate-500 hover:bg-slate-50 border border-slate-200'
               }`}
             >
               OFF
@@ -119,30 +117,30 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
           {/* Pump 2: Irrigation Pump (GPIO 7) */}
           <div className={`p-4 rounded-xl border transition-all ${
             isPump2Running
-              ? 'border-cyan-500/50 bg-cyan-950/20 shadow-md shadow-cyan-950/50'
-              : 'border-slate-800 bg-slate-950/40'
+              ? 'border-sky-400 bg-sky-50/80 shadow-md shadow-sky-500/10'
+              : 'border-slate-200 bg-slate-50/50'
           }`}>
             <div className="flex items-center justify-between">
               <div>
-                <span className="text-xs font-mono font-semibold text-slate-400">ACTUATOR 2 • GPIO 7</span>
-                <h4 className="text-sm font-bold text-white mt-0.5">Pump 2 — Irrigation Pump</h4>
+                <span className="text-xs font-mono font-bold text-sky-700">ACTUATOR 2 • GPIO 7</span>
+                <h4 className="text-sm font-extrabold text-slate-900 mt-0.5">Pump 2 — Irrigation Pump</h4>
               </div>
-              <span className={`px-2 py-0.5 rounded text-[11px] font-bold border font-mono ${
+              <span className={`px-2.5 py-0.5 rounded text-[11px] font-bold border font-mono ${
                 isPump2Running
-                  ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40 animate-pulse'
-                  : 'bg-slate-800 text-slate-400 border-slate-700'
+                  ? 'bg-sky-600 text-white border-sky-600 shadow-sm'
+                  : 'bg-slate-200/70 text-slate-600 border-slate-300'
               }`}>
                 {isPump2Running ? 'RUNNING' : 'OFF'}
               </span>
             </div>
 
-            <div className="mt-3 flex items-center justify-between text-xs text-slate-400">
+            <div className="mt-3 flex items-center justify-between text-xs text-slate-600">
               <span className="flex items-center gap-1 font-mono">
-                <Clock className="h-3 w-3 text-slate-500" />
-                Runtime: <strong className="text-slate-200">{status.pump2.runtimeSeconds}s</strong>
+                <Clock className="h-3.5 w-3.5 text-slate-500" />
+                Runtime: <strong className="text-slate-900 font-bold">{status.pump2.runtimeSeconds}s</strong>
               </span>
               {status.activeCycle && (
-                <span className="text-cyan-400 font-mono text-[11px]">
+                <span className="text-sky-700 font-mono text-[11px] font-semibold">
                   Target: {status.activeCycle.predictedRuntime}s
                 </span>
               )}
@@ -152,7 +150,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
               <button
                 onClick={() => handleAction('pump2_on', () => onTurnIrrigationOn(manualDuration))}
                 disabled={isPump2Running || loading === 'pump2_on'}
-                className="flex-1 py-2 px-3 rounded-lg text-xs font-bold bg-cyan-600 hover:bg-cyan-500 disabled:opacity-40 disabled:pointer-events-none text-white flex items-center justify-center gap-1.5 shadow-sm shadow-cyan-900/50 transition-all"
+                className="flex-1 py-2 px-3 rounded-lg text-xs font-bold bg-sky-600 hover:bg-sky-500 disabled:opacity-40 disabled:pointer-events-none text-white flex items-center justify-center gap-1.5 shadow-sm shadow-sky-600/30 transition-all font-mono"
               >
                 <Play className="h-3.5 w-3.5 fill-current" />
                 <span>Irrigation ON</span>
@@ -160,15 +158,15 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
               <button
                 onClick={() => handleAction('pump2_off', onTurnIrrigationOff)}
                 disabled={!isPump2Running || loading === 'pump2_off'}
-                className="flex-1 py-2 px-3 rounded-lg text-xs font-bold bg-slate-800 hover:bg-rose-900/40 text-slate-300 hover:text-rose-300 disabled:opacity-40 disabled:pointer-events-none border border-slate-700 flex items-center justify-center gap-1.5 transition-all"
+                className="flex-1 py-2 px-3 rounded-lg text-xs font-bold bg-white hover:bg-rose-50 text-slate-700 hover:text-rose-700 disabled:opacity-40 disabled:pointer-events-none border border-slate-300 flex items-center justify-center gap-1.5 transition-all font-mono"
               >
                 <Square className="h-3.5 w-3.5 fill-current" />
                 <span>Irrigation OFF</span>
               </button>
             </div>
             {isPump1Running && (
-              <p className="mt-2 text-[10px] text-amber-400/80 font-mono flex items-center gap-1">
-                <AlertOctagon className="h-3 w-3 shrink-0" />
+              <p className="mt-2 text-[10px] text-amber-700 font-mono font-medium flex items-center gap-1">
+                <AlertOctagon className="h-3 w-3 shrink-0 text-amber-500" />
                 Turning ON will instantly cut off Pump 1 (Mutual Exclusion).
               </p>
             )}
@@ -177,29 +175,29 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
           {/* Pump 1: Tank Filling Pump (GPIO 6) */}
           <div className={`p-4 rounded-xl border transition-all ${
             isPump1Running
-              ? 'border-emerald-500/50 bg-emerald-950/20 shadow-md shadow-emerald-950/50'
-              : 'border-slate-800 bg-slate-950/40'
+              ? 'border-blue-400 bg-blue-50/80 shadow-md shadow-blue-500/10'
+              : 'border-slate-200 bg-slate-50/50'
           }`}>
             <div className="flex items-center justify-between">
               <div>
-                <span className="text-xs font-mono font-semibold text-slate-400">ACTUATOR 1 • GPIO 6</span>
-                <h4 className="text-sm font-bold text-white mt-0.5">Pump 1 — Tank Filling Pump</h4>
+                <span className="text-xs font-mono font-bold text-blue-700">ACTUATOR 1 • GPIO 6</span>
+                <h4 className="text-sm font-extrabold text-slate-900 mt-0.5">Pump 1 — Tank Filling Pump</h4>
               </div>
-              <span className={`px-2 py-0.5 rounded text-[11px] font-bold border font-mono ${
+              <span className={`px-2.5 py-0.5 rounded text-[11px] font-bold border font-mono ${
                 isPump1Running
-                  ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 animate-pulse'
-                  : 'bg-slate-800 text-slate-400 border-slate-700'
+                  ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+                  : 'bg-slate-200/70 text-slate-600 border-slate-300'
               }`}>
                 {isPump1Running ? 'RUNNING' : 'OFF'}
               </span>
             </div>
 
-            <div className="mt-3 flex items-center justify-between text-xs text-slate-400">
+            <div className="mt-3 flex items-center justify-between text-xs text-slate-600">
               <span className="flex items-center gap-1 font-mono">
-                <Clock className="h-3 w-3 text-slate-500" />
-                Runtime: <strong className="text-slate-200">{status.pump1.runtimeSeconds}s</strong>
+                <Clock className="h-3.5 w-3.5 text-slate-500" />
+                Runtime: <strong className="text-slate-900 font-bold">{status.pump1.runtimeSeconds}s</strong>
               </span>
-              <span className="text-slate-400 font-mono text-[11px]">
+              <span className="text-slate-600 font-mono text-[11px]">
                 Tank: {status.currentTankLevel === -1 ? 'NO ECHO' : `${status.currentTankLevel}%`}
               </span>
             </div>
@@ -208,7 +206,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
               <button
                 onClick={() => handleAction('pump1_on', onTurnFillOn)}
                 disabled={isPump1Running || loading === 'pump1_on'}
-                className="flex-1 py-2 px-3 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:pointer-events-none text-white flex items-center justify-center gap-1.5 shadow-sm shadow-emerald-900/50 transition-all"
+                className="flex-1 py-2 px-3 rounded-lg text-xs font-bold bg-blue-600 hover:bg-blue-500 disabled:opacity-40 disabled:pointer-events-none text-white flex items-center justify-center gap-1.5 shadow-sm shadow-blue-600/30 transition-all font-mono"
               >
                 <Play className="h-3.5 w-3.5 fill-current" />
                 <span>Tank Fill ON</span>
@@ -216,15 +214,15 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
               <button
                 onClick={() => handleAction('pump1_off', onTurnFillOff)}
                 disabled={!isPump1Running || loading === 'pump1_off'}
-                className="flex-1 py-2 px-3 rounded-lg text-xs font-bold bg-slate-800 hover:bg-rose-900/40 text-slate-300 hover:text-rose-300 disabled:opacity-40 disabled:pointer-events-none border border-slate-700 flex items-center justify-center gap-1.5 transition-all"
+                className="flex-1 py-2 px-3 rounded-lg text-xs font-bold bg-white hover:bg-rose-50 text-slate-700 hover:text-rose-700 disabled:opacity-40 disabled:pointer-events-none border border-slate-300 flex items-center justify-center gap-1.5 transition-all font-mono"
               >
                 <Square className="h-3.5 w-3.5 fill-current" />
                 <span>Tank Fill OFF</span>
               </button>
             </div>
             {isPump2Running && (
-              <p className="mt-2 text-[10px] text-amber-400/80 font-mono flex items-center gap-1">
-                <AlertOctagon className="h-3 w-3 shrink-0" />
+              <p className="mt-2 text-[10px] text-amber-700 font-mono font-medium flex items-center gap-1">
+                <AlertOctagon className="h-3 w-3 shrink-0 text-amber-500" />
                 Turning ON will instantly cut off Pump 2 (Mutual Exclusion).
               </p>
             )}
@@ -233,11 +231,11 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
       </div>
 
       {/* Footer telemetry summary */}
-      <div className="mt-4 pt-3 border-t border-slate-800/80 flex flex-wrap items-center justify-between text-xs text-slate-400 font-mono">
-        <span>Current Moisture: <strong className="text-emerald-400">{status.currentMoisture}%</strong></span>
-        <span>Last MQTT Cmd: <strong className="text-slate-200">{status.lastCommand}</strong></span>
-        <span className="text-amber-400/90 flex items-center gap-1">
-          <ShieldCheck className="h-3.5 w-3.5" /> Mutual Exclusion: Hard Lock
+      <div className="mt-4 pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between text-xs text-slate-600 font-mono">
+        <span>Current Moisture: <strong className="text-sky-700 font-bold">{status.currentMoisture}%</strong></span>
+        <span>Last Command: <strong className="text-slate-800">{status.lastCommand}</strong></span>
+        <span className="text-amber-800 font-semibold flex items-center gap-1">
+          <ShieldCheck className="h-3.5 w-3.5 text-amber-600" /> Mutual Exclusion: Hard Lock
         </span>
       </div>
     </div>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
 import { IrrigationCycle } from '../types';
-import { History, Droplet, ArrowRight, CheckCircle2, Download } from 'lucide-react';
+import { History, Download } from 'lucide-react';
 
 export const IrrigationHistoryPage: React.FC = () => {
   const [cycles, setCycles] = useState<IrrigationCycle[]>([]);
@@ -29,11 +29,11 @@ export const IrrigationHistoryPage: React.FC = () => {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-white tracking-tight flex items-center gap-2">
-            <History className="h-5 w-5 text-emerald-400" />
+          <h2 className="text-xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
+            <History className="h-5 w-5 text-sky-600" />
             <span>Closed-Loop Irrigation History &amp; Post-Learning Logs (Section 22)</span>
           </h2>
-          <p className="text-xs text-slate-400 mt-1">
+          <p className="text-xs text-slate-500 mt-1">
             Historical cycle outcomes: moisture gain, rate per second, and prediction error stored for retraining
           </p>
         </div>
@@ -41,26 +41,26 @@ export const IrrigationHistoryPage: React.FC = () => {
         <a
           href={api.getIrrigationCsvUrl()}
           download="terrawave_irrigation_history.csv"
-          className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold font-mono tracking-wider flex items-center gap-2 border border-slate-700 transition-all shrink-0"
+          className="px-4 py-2 rounded-xl bg-white hover:bg-sky-50 text-sky-800 text-xs font-bold font-mono tracking-wider flex items-center gap-2 border border-sky-200 transition-all shrink-0 shadow-sm"
         >
-          <Download className="h-4 w-4 text-emerald-400" />
+          <Download className="h-4 w-4 text-sky-600" />
           <span>Export Irrigation CSV</span>
         </a>
       </div>
 
-      <div className="rounded-xl border border-slate-800 bg-slate-900/80 p-5 glass-panel">
+      <div className="rounded-xl border border-sky-100 bg-white p-5 glass-panel shadow-sm">
         {loading ? (
-          <div className="py-12 text-center text-slate-500 text-xs font-mono">
+          <div className="py-12 text-center text-slate-400 text-xs font-mono">
             Loading irrigation cycle records...
           </div>
         ) : cycles.length === 0 ? (
-          <div className="py-12 text-center text-slate-500 text-xs font-mono">
+          <div className="py-12 text-center text-slate-400 text-xs font-mono">
             No irrigation cycles recorded yet. Trigger Pump 2 manually or enable Automatic Mode.
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs font-mono">
-              <thead className="bg-slate-950 text-slate-400 uppercase text-[10px]">
+              <thead className="bg-sky-50 text-slate-700 uppercase text-[10px] border-b border-sky-100">
                 <tr>
                   <th className="py-2.5 px-3">Date / Time</th>
                   <th className="py-2.5 px-3">Trigger Type</th>
@@ -74,47 +74,47 @@ export const IrrigationHistoryPage: React.FC = () => {
                   <th className="py-2.5 px-3">Model</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800/60 text-slate-300">
+              <tbody className="divide-y divide-slate-100 text-slate-700">
                 {cycles.map((c) => (
-                  <tr key={c._id} className="hover:bg-slate-800/40">
-                    <td className="py-2.5 px-3 text-slate-400">
+                  <tr key={c._id} className="hover:bg-sky-50/50">
+                    <td className="py-2.5 px-3 text-slate-500">
                       {new Date(c.createdAt || c.startTime).toLocaleString()}
                     </td>
                     <td className="py-2.5 px-3">
                       <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
                         c.triggerType === 'automatic'
-                          ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30'
-                          : 'bg-slate-800 text-slate-300 border border-slate-700'
+                          ? 'bg-sky-100 text-sky-800 border border-sky-200'
+                          : 'bg-slate-100 text-slate-700 border border-slate-200'
                       }`}>
                         {c.triggerType}
                       </span>
                     </td>
-                    <td className="py-2.5 px-3 font-semibold text-amber-400">
+                    <td className="py-2.5 px-3 font-semibold text-amber-700">
                       {c.beforeMoisture}%
                     </td>
-                    <td className="py-2.5 px-3 text-slate-300">
+                    <td className="py-2.5 px-3 text-slate-600">
                       {c.predictedRuntime}s
                     </td>
-                    <td className="py-2.5 px-3 font-bold text-white">
+                    <td className="py-2.5 px-3 font-bold text-slate-900">
                       {c.actualRuntime}s
                     </td>
-                    <td className="py-2.5 px-3 font-semibold text-emerald-400">
+                    <td className="py-2.5 px-3 font-semibold text-sky-700">
                       {c.afterMoisture !== undefined ? `${c.afterMoisture}%` : 'Calculating...'}
                     </td>
-                    <td className="py-2.5 px-3 text-cyan-400 font-bold">
+                    <td className="py-2.5 px-3 text-blue-700 font-bold">
                       {c.moistureGain !== undefined ? `+${c.moistureGain}%` : '—'}
                     </td>
-                    <td className="py-2.5 px-3 text-slate-300">
+                    <td className="py-2.5 px-3 text-slate-600">
                       {c.gainPerSecond !== undefined ? `${c.gainPerSecond}%/s` : '—'}
                     </td>
                     <td className="py-2.5 px-3">
                       {c.predictionError !== undefined ? (
-                        <span className={`font-semibold ${c.predictionError < 5 ? 'text-emerald-400' : 'text-amber-400'}`}>
+                        <span className={`font-semibold ${c.predictionError < 5 ? 'text-sky-700' : 'text-amber-700'}`}>
                           {c.predictionError}% pts
                         </span>
                       ) : '—'}
                     </td>
-                    <td className="py-2.5 px-3 text-slate-500 text-[10px]">
+                    <td className="py-2.5 px-3 text-slate-400 text-[10px]">
                       {c.modelUsed}
                     </td>
                   </tr>
