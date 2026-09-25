@@ -10,7 +10,7 @@ import {
   SettingsData
 } from '../types';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:1608/api';
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:1607/api';
 
 export const api = {
   // Sensors
@@ -40,11 +40,11 @@ export const api = {
     return res.json();
   },
 
-  async turnIrrigationOn(durationSeconds?: number, targetMoisture = 80): Promise<any> {
+  async turnIrrigationOn(durationSeconds?: number, targetMoisture = 80, forceManual = false): Promise<any> {
     const res = await fetch(`${API_BASE}/pumps/irrigation/on`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ durationSeconds, targetMoisture })
+      body: JSON.stringify({ durationSeconds, targetMoisture, forceManual })
     });
     return res.json();
   },

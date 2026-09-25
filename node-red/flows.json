@@ -34,7 +34,11 @@
     "rh": 0,
     "x": 160,
     "y": 120,
-    "wires": [["json_parser_moisture"]]
+    "wires": [
+      [
+        "json_parser_moisture"
+      ]
+    ]
   },
   {
     "id": "mqtt_in_tank",
@@ -50,7 +54,11 @@
     "rh": 0,
     "x": 170,
     "y": 200,
-    "wires": [["json_parser_tank"]]
+    "wires": [
+      [
+        "json_parser_tank"
+      ]
+    ]
   },
   {
     "id": "mqtt_in_pump1",
@@ -66,7 +74,11 @@
     "rh": 0,
     "x": 180,
     "y": 280,
-    "wires": [["function_format_pump_status"]]
+    "wires": [
+      [
+        "function_format_pump_status"
+      ]
+    ]
   },
   {
     "id": "mqtt_in_pump2",
@@ -82,7 +94,11 @@
     "rh": 0,
     "x": 180,
     "y": 360,
-    "wires": [["function_format_pump_status"]]
+    "wires": [
+      [
+        "function_format_pump_status"
+      ]
+    ]
   },
   {
     "id": "json_parser_moisture",
@@ -94,7 +110,11 @@
     "pretty": false,
     "x": 380,
     "y": 120,
-    "wires": [["validate_moisture"]]
+    "wires": [
+      [
+        "validate_moisture"
+      ]
+    ]
   },
   {
     "id": "json_parser_tank",
@@ -106,7 +126,11 @@
     "pretty": false,
     "x": 380,
     "y": 200,
-    "wires": [["validate_tank"]]
+    "wires": [
+      [
+        "validate_tank"
+      ]
+    ]
   },
   {
     "id": "validate_moisture",
@@ -121,7 +145,11 @@
     "libs": [],
     "x": 620,
     "y": 120,
-    "wires": [["http_post_telemetry"]]
+    "wires": [
+      [
+        "http_post_telemetry"
+      ]
+    ]
   },
   {
     "id": "validate_tank",
@@ -136,7 +164,11 @@
     "libs": [],
     "x": 630,
     "y": 200,
-    "wires": [["http_post_telemetry"]]
+    "wires": [
+      [
+        "http_post_telemetry"
+      ]
+    ]
   },
   {
     "id": "function_format_pump_status",
@@ -151,7 +183,11 @@
     "libs": [],
     "x": 610,
     "y": 320,
-    "wires": [["http_post_pump_event"]]
+    "wires": [
+      [
+        "http_post_pump_event"
+      ]
+    ]
   },
   {
     "id": "http_post_telemetry",
@@ -170,7 +206,11 @@
     "headers": [],
     "x": 920,
     "y": 160,
-    "wires": [["debug_response"]]
+    "wires": [
+      [
+        "debug_response"
+      ]
+    ]
   },
   {
     "id": "http_post_pump_event",
@@ -189,7 +229,11 @@
     "headers": [],
     "x": 930,
     "y": 320,
-    "wires": [["debug_response"]]
+    "wires": [
+      [
+        "debug_response"
+      ]
+    ]
   },
   {
     "id": "debug_response",
@@ -219,7 +263,12 @@
     "swaggerDoc": "",
     "x": 200,
     "y": 480,
-    "wires": [["format_mqtt_out", "http_response_ok"]]
+    "wires": [
+      [
+        "format_mqtt_out",
+        "http_response_ok"
+      ]
+    ]
   },
   {
     "id": "format_mqtt_out",
@@ -234,7 +283,11 @@
     "libs": [],
     "x": 480,
     "y": 480,
-    "wires": [["mqtt_out_cmd"]]
+    "wires": [
+      [
+        "mqtt_out_cmd"
+      ]
+    ]
   },
   {
     "id": "mqtt_out_cmd",

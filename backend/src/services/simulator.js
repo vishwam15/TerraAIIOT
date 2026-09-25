@@ -1,5 +1,6 @@
 const SensorReading = require('../models/SensorReading');
 const pumpController = require('./pumpController');
+const mqttService = require('./mqttService');
 
 class ESP32Simulator {
   constructor() {
@@ -33,6 +34,11 @@ class ESP32Simulator {
   }
 
   async step() {
+    // Live hardware telemetry takes precedence over simulator (Requirement 28)
+    if (mqttService.getESP32Status() === 'ONLINE') {
+      return;
+    }
+
     const pump1 = pumpController.pump1State; // Tank filling pump
     const pump2 = pumpController.pump2State; // Irrigation pump
 

@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 const Settings = require('../models/Settings');
 const SystemEvent = require('../models/SystemEvent');
 const SensorReading = require('../models/SensorReading');
+const PumpEvent = require('../models/PumpEvent');
 const pumpController = require('../services/pumpController');
 const mqttService = require('../services/mqttService');
 const mlClient = require('../services/mlClient');
@@ -19,6 +20,8 @@ exports.getSystemStatus = async (req, res) => {
 
     const recentLogs = await SystemEvent.find().sort({ timestamp: -1 }).limit(20).lean();
 
+    const backendPort = String(process.env.PORT || '1607');
+
     res.json({
       success: true,
       data: {
@@ -26,7 +29,7 @@ exports.getSystemStatus = async (req, res) => {
           esp32: { name: 'ESP32-S3 Firmware', status: esp32Status, port: 'GPIO 1,4,5,6,7', details: esp32Status === 'Connected' ? 'Telemetry active' : 'Offline / Waiting MQTT' },
           mqtt: { name: 'HiveMQ MQTT Broker', status: mqttStatus, port: '1883', details: 'broker.hivemq.com' },
           nodeRed: { name: 'Node-RED Gateway', status: nodeRedStatus, port: '1880', details: 'MQTT Validation & HTTP Forwarder' },
-          backend: { name: 'Node.js/Express Backend', status: 'Connected', port: '1608', details: 'REST & WebSocket Hub' },
+          backend: { name: 'Node.js/Express Backend', status: 'Connected', port: backendPort, details: 'REST & WebSocket Hub' },
           mongodb: { name: 'MongoDB Database', status: mongoStatus, port: '27017', details: 'Collections & Indexes active' },
           mlService: { name: 'Python FastAPI ML Engine', status: mlStatus, port: '8000', details: `Active Model: ${mlHealth.active_model || 'RandomForestRegressor'}` }
         },
@@ -54,7 +57,7 @@ exports.getSettings = async (req, res) => {
 exports.updateSettings = async (req, res) => {
   try {
     const { autoStartThreshold, autoStopThreshold, aiTargetMoisture, maxPumpRuntime, sensorUpdateInterval } = req.body;
-    
+
     let settings = await Settings.findOne();
     if (!settings) settings = new Settings();
 
@@ -131,6 +134,15 @@ exports.receiveNodeRedTelemetry = async (req, res) => {
 exports.receiveNodeRedPumpEvent = async (req, res) => {
   try {
     const { pumpId, action } = req.body;
+    if (pumpId && action) {
+      await PumpEvent.create({
+        pumpId: pumpId === 'PUMP_1' ? 'PUMP_1' : 'PUMP_2',
+        action: action.toUpperCase() === 'ON' ? 'ON' : 'OFF',
+        reason: 'node_red_relay',
+        soilMoistureAtEvent: pumpController.currentMoisture,
+        source: 'node_red'
+      });
+    }
     res.json({ success: true, message: `Node-RED pump event ${pumpId} -> ${action} recorded` });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });

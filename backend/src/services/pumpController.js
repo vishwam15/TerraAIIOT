@@ -74,7 +74,6 @@ class PumpController extends EventEmitter {
       this.pump1StartTime = Date.now();
       this.lastCommand = 'FILL_ON';
     } else {
-      const runtime = this.pump1StartTime ? Math.round((Date.now() - this.pump1StartTime) / 1000) : 0;
       this.pump1State = false;
       this.pump1StartTime = null;
       this.lastCommand = 'FILL_OFF';
@@ -93,6 +92,128 @@ class PumpController extends EventEmitter {
     this.emit('mqtt_publish', { topic: 'irrigation/cmd', payload: turnOn ? 'FILL_ON' : 'FILL_OFF' });
     this.emit('mqtt_publish', { topic: 'irrigation/pump1_status', payload: turnOn ? 'FILL_ON' : 'FILL_OFF' });
     return this.getStatus();
+  }
+
+  // AI-controlled irrigation initiation (Requirement 2 & 11)
+  async startAiIrrigation(targetMoistureParam = null) {
+    const settings = await Settings.findOne() || {
+      autoStartThreshold: 30,
+      autoStopThreshold: 80,
+      aiTargetMoisture: 80,
+      maxPumpRuntime: 30
+    };
+
+    const targetMoisture = (targetMoistureParam !== null && targetMoistureParam !== undefined)
+      ? Number(targetMoistureParam)
+      : (settings.aiTargetMoisture || 80);
+
+    const currentMoisture = Number(this.currentMoisture);
+
+    // Requirement 2: If current moisture is already >= target moisture, runtime = 0 and pump must NOT start
+    if (currentMoisture >= targetMoisture) {
+      console.log(`[AI Irrigation] Current moisture (${currentMoisture}%) >= Target (${targetMoisture}%). Pump will NOT start.`);
+      return {
+        success: false,
+        started: false,
+        currentMoisture,
+        targetMoisture,
+        predictedRuntime: 0.0,
+        message: `Current moisture (${currentMoisture}%) is already at or above target (${targetMoisture}%). Irrigation pump will not start.`
+      };
+    }
+
+    // Predict runtime using ML microservice (with safe fallback)
+    const prediction = await mlClient.predict(currentMoisture, targetMoisture);
+    const predictedRuntime = Number(prediction.predicted_runtime_seconds);
+
+    if (predictedRuntime <= 0) {
+      return {
+        success: false,
+        started: false,
+        currentMoisture,
+        targetMoisture,
+        predictedRuntime: 0.0,
+        message: 'Predicted pump runtime is 0 seconds.'
+      };
+    }
+
+    // Clamp with configurable MAX_PUMP_RUNTIME safety boundary
+    const maxLimit = settings.maxPumpRuntime || 30;
+    const safeDuration = Math.min(maxLimit, Math.max(0.1, predictedRuntime));
+
+    // Hard mutual exclusion: Pump 1 must be OFF before Pump 2 starts
+    if (this.pump1State) {
+      console.warn('[SAFETY] Mutual exclusion triggered: Stopping Pump 1 before starting Pump 2.');
+      await this.setPump1(false, 'mutual_exclusion_cutoff');
+      await SystemEvent.create({
+        eventType: 'PUMP_MUTUAL_EXCLUSION',
+        message: 'Pump 1 stopped automatically to allow Pump 2 activation (Hard Mutual Exclusion Rule).',
+        details: { pumpStopped: 'PUMP_1', pumpStarted: 'PUMP_2' }
+      });
+    }
+
+    // Clear prior timer if any
+    if (this.pump2Timer) {
+      clearTimeout(this.pump2Timer);
+      this.pump2Timer = null;
+    }
+
+    // Create active irrigation cycle record in MongoDB
+    this.activeIrrigationCycle = await IrrigationCycle.create({
+      pumpId: 'PUMP_2',
+      triggerType: 'manual',
+      beforeMoisture: currentMoisture,
+      targetMoisture: targetMoisture,
+      predictedRuntime: safeDuration,
+      actualRuntime: 0,
+      modelUsed: prediction.model || 'RandomForestRegressor',
+      status: 'in_progress',
+      startTime: new Date(),
+      source: 'backend'
+    });
+
+    this.pump2State = true;
+    this.pump2StartTime = Date.now();
+    this.lastCommand = 'PUMP_ON';
+
+    console.log(`[AI Irrigation] Started Pump 2 for predicted ${safeDuration}s (Current: ${currentMoisture}%, Target: ${targetMoisture}%)`);
+
+    // Log to DB
+    await PumpEvent.create({
+      pumpId: 'PUMP_2',
+      action: 'ON',
+      reason: 'ai_manual_trigger',
+      soilMoistureAtEvent: currentMoisture,
+      durationSeconds: safeDuration,
+      source: 'backend'
+    });
+
+    // Schedule automatic shutdown after predicted duration
+    this.pump2Timer = setTimeout(async () => {
+      console.log(`[AI Irrigation] Predicted duration (${safeDuration}s) reached. Automatically stopping Pump 2.`);
+      await this.setPump2(false, 'ai_runtime_complete');
+    }, safeDuration * 1000);
+
+    this.emit('pump_change', this.getStatus());
+    this.emit('mqtt_publish', { topic: 'irrigation/cmd', payload: 'PUMP_ON' });
+    this.emit('mqtt_publish', { topic: 'irrigation/pump2_status', payload: 'PUMP_ON' });
+    this.emit('ai_irrigation_started', {
+      cycleId: this.activeIrrigationCycle._id,
+      moistureBefore: currentMoisture,
+      targetMoisture: targetMoisture,
+      predictedRuntime: safeDuration,
+      explanation: prediction.explanation
+    });
+
+    return {
+      success: true,
+      started: true,
+      currentMoisture,
+      targetMoisture,
+      predictedRuntime: safeDuration,
+      prediction,
+      status: this.getStatus()
+    };
   }
 
   async setPump2(turnOn, reason = 'manual', durationSeconds = null, targetMoisture = 80) {
@@ -120,14 +241,13 @@ class PumpController extends EventEmitter {
 
       // If duration is specified or predicted, schedule auto-off
       if (durationSeconds && durationSeconds > 0) {
-        // Enforce MAX_PUMP_RUNTIME safety boundary
         const settings = await Settings.findOne() || { maxPumpRuntime: 30 };
         const safeDuration = Math.min(settings.maxPumpRuntime, Math.max(0.1, durationSeconds));
         
-        console.log(`[PumpController] Scheduling Pump 2 shutdown in ${safeDuration}s (AI Predicted Duration)`);
+        console.log(`[PumpController] Scheduling Pump 2 shutdown in ${safeDuration}s (${reason})`);
         
         this.pump2Timer = setTimeout(async () => {
-          console.log(`[PumpController] AI Predicted duration (${safeDuration}s) reached. Stopping Pump 2.`);
+          console.log(`[PumpController] Runtime duration (${safeDuration}s) reached. Stopping Pump 2.`);
           await this.setPump2(false, 'ai_runtime_complete');
         }, safeDuration * 1000);
       }
@@ -227,7 +347,7 @@ class PumpController extends EventEmitter {
     }
 
     // Automatic trigger rule:
-    if (moisture < startThreshold) {
+    if (moisture <= startThreshold) {
       // Check cooldown and current pump state
       const now = Date.now();
       const timeSinceLastCycle = (now - this.lastIrrigationCycleEndTime) / 1000;

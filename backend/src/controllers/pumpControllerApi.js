@@ -7,13 +7,44 @@ exports.getStatus = (req, res) => {
 
 exports.turnIrrigationOn = async (req, res) => {
   try {
-    const duration = req.body.durationSeconds ? Number(req.body.durationSeconds) : null;
-    const targetMoisture = req.body.targetMoisture ? Number(req.body.targetMoisture) : 80;
-    const status = await pumpController.setPump2(true, 'manual', duration, targetMoisture);
+    const { forceManual, durationSeconds, targetMoisture } = req.body;
+
+    // Emergency / manual override mode (Section 11)
+    if (forceManual === true) {
+      const duration = durationSeconds ? Number(durationSeconds) : null;
+      const status = await pumpController.setPump2(true, 'force_manual_override', duration);
+      return res.json({
+        success: true,
+        message: 'Irrigation Pump 2 FORCE STARTED (Manual Override Mode). Tank pump (Pump 1) held OFF (Mutual Exclusion).',
+        data: status
+      });
+    }
+
+    // Default primary mode: AI-Predicted Irrigation (Section 2, 10, 11)
+    const result = await pumpController.startAiIrrigation(targetMoisture);
+
+    if (!result.started) {
+      return res.json({
+        success: false,
+        message: result.message,
+        data: pumpController.getStatus(),
+        prediction: {
+          predicted_runtime_seconds: 0.0,
+          current_moisture: result.currentMoisture,
+          target_moisture: result.targetMoisture,
+          explanation: result.message
+        }
+      });
+    }
+
     res.json({
       success: true,
-      message: 'Irrigation Pump (Pump 2) started successfully. Tank pump (Pump 1) held OFF (Mutual Exclusion).',
-      data: status
+      message: `AI Irrigation started: Current Moisture ${result.currentMoisture}%, Target ${result.targetMoisture}%, AI Predicted Runtime ${result.predictedRuntime.toFixed(2)} seconds.`,
+      data: result.status,
+      prediction: result.prediction,
+      predictedRuntime: result.predictedRuntime,
+      currentMoisture: result.currentMoisture,
+      targetMoisture: result.targetMoisture
     });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });

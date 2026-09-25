@@ -161,52 +161,71 @@ export const App: React.FC = () => {
   }, []);
 
   // Actuator Handlers
-  const handleTurnIrrigationOn = async (duration?: number) => {
-    const res = await api.turnIrrigationOn(duration, settings.aiTargetMoisture);
+  const handleTurnIrrigationOn = async (duration?: number, forceManual = false): Promise<any> => {
+    const res = await api.turnIrrigationOn(duration, settings.aiTargetMoisture, forceManual);
     if (res.success) {
-      setPumpStatus(res.data);
+      if (res.data) setPumpStatus(res.data);
       showNotification(res.message);
     }
+    return res; // Return full response so ControlPanel can read predictedRuntime for countdown
   };
 
-  const handleTurnIrrigationOff = async () => {
+  const handleTurnIrrigationOff = async (): Promise<any> => {
     const res = await api.turnIrrigationOff();
     if (res.success) {
-      setPumpStatus(res.data);
+      if (res.data) setPumpStatus(res.data);
       showNotification(res.message);
     }
+    return res;
   };
 
-  const handleTurnFillOn = async () => {
+  const handleTurnFillOn = async (): Promise<any> => {
     const res = await api.turnFillOn();
     if (res.success) {
-      setPumpStatus(res.data);
+      if (res.data) setPumpStatus(res.data);
       showNotification(res.message);
     }
+    return res;
   };
 
-  const handleTurnFillOff = async () => {
+  const handleTurnFillOff = async (): Promise<any> => {
     const res = await api.turnFillOff();
     if (res.success) {
-      setPumpStatus(res.data);
+      if (res.data) setPumpStatus(res.data);
       showNotification(res.message);
     }
+    return res;
   };
 
-  const handleEnableAuto = async () => {
+  const handleEnableAuto = async (): Promise<any> => {
     const res = await api.enableAutomation();
     if (res.success) {
-      setPumpStatus(res.data);
+      if (res.data) setPumpStatus(res.data);
       showNotification(res.message);
     }
+    return res;
   };
 
-  const handleDisableAuto = async () => {
+  const handleDisableAuto = async (): Promise<any> => {
     const res = await api.disableAutomation();
     if (res.success) {
-      setPumpStatus(res.data);
+      if (res.data) setPumpStatus(res.data);
       showNotification(res.message);
     }
+    return res;
+  };
+
+  const handleUpdateTargetMoisture = async (target: number): Promise<void> => {
+    const newSettings = { ...settings, aiTargetMoisture: target };
+    setSettings(newSettings);
+    await api.updateSettings({ aiTargetMoisture: target });
+    fetchPrediction(currentMoisture, target);
+  };
+
+  const handleUpdateStartThreshold = async (threshold: number): Promise<void> => {
+    const newSettings = { ...settings, autoStartThreshold: threshold };
+    setSettings(newSettings);
+    await api.updateSettings({ autoStartThreshold: threshold });
   };
 
   const handleToggleSimulator = async () => {
@@ -226,7 +245,7 @@ export const App: React.FC = () => {
   };
 
   return (
-    <div className="flex min-h-screen bg-[#f4f9ff] text-slate-900 font-sans">
+    <div className="flex min-h-screen bg-slate-950 text-slate-100 font-sans">
       {/* Sidebar Navigation */}
       <Sidebar
         currentTab={currentTab}
@@ -251,9 +270,9 @@ export const App: React.FC = () => {
 
         {/* Global Toast Notification */}
         {notification && (
-          <div className="sticky top-16 z-30 px-6 py-2.5 bg-sky-50 border-b border-sky-200 text-sky-900 text-xs font-mono font-semibold flex items-center justify-between backdrop-blur-md shadow-sm">
+          <div className="sticky top-16 z-30 px-6 py-2 bg-emerald-500/15 border-b border-emerald-500/30 text-emerald-300 text-xs font-mono flex items-center justify-between backdrop-blur-md">
             <span>{notification}</span>
-            <button onClick={() => setNotification(null)} className="text-sky-700 hover:text-sky-950 font-bold">✕</button>
+            <button onClick={() => setNotification(null)} className="text-slate-400 hover:text-white">✕</button>
           </div>
         )}
 
@@ -275,6 +294,8 @@ export const App: React.FC = () => {
               onDisableAuto={handleDisableAuto}
               onRefreshPrediction={() => fetchPrediction(currentMoisture, settings.aiTargetMoisture)}
               isPredicting={isPredicting}
+              onUpdateTargetMoisture={handleUpdateTargetMoisture}
+              onUpdateStartThreshold={handleUpdateStartThreshold}
             />
           )}
 
@@ -292,12 +313,16 @@ export const App: React.FC = () => {
             <ControlPage
               pumpStatus={pumpStatus}
               settings={settings}
+              currentMoisture={currentMoisture}
+              prediction={prediction}
               onTurnIrrigationOn={handleTurnIrrigationOn}
               onTurnIrrigationOff={handleTurnIrrigationOff}
               onTurnFillOn={handleTurnFillOn}
               onTurnFillOff={handleTurnFillOff}
               onEnableAuto={handleEnableAuto}
               onDisableAuto={handleDisableAuto}
+              onUpdateTargetMoisture={handleUpdateTargetMoisture}
+              onUpdateStartThreshold={handleUpdateStartThreshold}
             />
           )}
 

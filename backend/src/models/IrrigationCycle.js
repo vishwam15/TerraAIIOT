@@ -6,7 +6,7 @@ const IrrigationCycleSchema = new mongoose.Schema({
   beforeMoisture: { type: Number, required: true },
   targetMoisture: { type: Number, default: 80 },
   predictedRuntime: { type: Number, required: true },
-  actualRuntime: { type: Number, required: true },
+  actualRuntime: { type: Number, default: 0 },
   afterMoisture: { type: Number },
   moistureGain: { type: Number },
   gainPerSecond: { type: Number },

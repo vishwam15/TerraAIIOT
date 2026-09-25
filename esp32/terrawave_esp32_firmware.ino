@@ -37,9 +37,9 @@ const char* device_id = "ESP32-S3-001";
 #define PUMP1_PIN      6  // Tank Filling Pump
 #define PUMP2_PIN      7  // Irrigation Pump
 
-// Calibration Constants
-#define SOIL_DRY       3000
-#define SOIL_WET       1200
+// Calibration Constants (Configurable via MQTT irrigation/calibrate)
+int soil_dry_adc = 3000;
+int soil_wet_adc = 1200;
 #define TANK_MIN_CM    5    // 100% full
 #define TANK_MAX_CM    40   // 0% empty
 
@@ -91,8 +91,12 @@ float readSoilMoisture(int &rawADC) {
   }
   rawADC = sum / 5;
   
-  // Linear continuous interpolation: 3000 (dry) -> 0.0%, 1200 (wet) -> 100.0%
-  float moisture = ((float)(SOIL_DRY - rawADC) / (float)(SOIL_DRY - SOIL_WET)) * 100.0f;
+  // Linear continuous interpolation: dry ADC -> 0.0%, wet ADC -> 100.0%
+  float moisture = 0.0f;
+  if (soil_dry_adc != soil_wet_adc) {
+    moisture = ((float)(soil_dry_adc - rawADC) / (float)(soil_dry_adc - soil_wet_adc)) * 100.0f;
+  }
+  // Clamp values strictly to 0.0 - 100.0%
   if (moisture < 0.0f) moisture = 0.0f;
   if (moisture > 100.0f) moisture = 100.0f;
   
@@ -158,6 +162,20 @@ void callback(char* topic, byte* payload, unsigned int length) {
       auto_mode = false;
       Serial.println("[MODE] Automatic mode disabled.");
     }
+  } else if (String(topic) == "irrigation/calibrate") {
+    // Support dynamic ADC calibration format "DRY:3000,WET:1200"
+    int dryIdx = message.indexOf("DRY:");
+    int wetIdx = message.indexOf("WET:");
+    if (dryIdx != -1) {
+      int comma = message.indexOf(',', dryIdx);
+      int val = (comma != -1) ? message.substring(dryIdx + 4, comma).toInt() : message.substring(dryIdx + 4).toInt();
+      if (val > 0) soil_dry_adc = val;
+    }
+    if (wetIdx != -1) {
+      int val = message.substring(wetIdx + 4).toInt();
+      if (val > 0) soil_wet_adc = val;
+    }
+    Serial.printf("[CALIBRATION UPDATED] Dry ADC: %d | Wet ADC: %d\n", soil_dry_adc, soil_wet_adc);
   }
 }
 
@@ -168,6 +186,7 @@ void reconnect() {
     if (client.connect(clientId.c_str())) {
       Serial.println(" Connected!");
       client.subscribe("irrigation/cmd");
+      client.subscribe("irrigation/calibrate");
       // Publish initial state
       client.publish("irrigation/pump1_status", pump1_state ? "FILL_ON" : "FILL_OFF");
       client.publish("irrigation/pump2_status", pump2_state ? "PUMP_ON" : "PUMP_OFF");
@@ -247,7 +266,7 @@ void loop() {
     }
     client.publish("irrigation/tank_level", tankPayload);
     
-    Serial.printf("[TELEMETRY] Moisture: %d%% (ADC %d) | Tank: %s\n",
+    Serial.printf("[TELEMETRY] Moisture: %.1f%% (ADC %d) | Tank: %s\n",
                   moisture, rawADC, (tankLevel < 0 ? "NO ECHO" : String(tankLevel, 1).c_str()));
   }
 }

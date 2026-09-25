@@ -180,6 +180,13 @@ def init_and_train_all(df: pd.DataFrame):
     print(f"[{datetime.now().isoformat()}] Trained all models successfully. Samples: {len(df)}")
 
 # Train on startup using dataset
+if not os.path.exists(DATA_CSV_PATH):
+    try:
+        from generate_dataset import generate_irrigation_dataset
+        generate_irrigation_dataset()
+    except Exception as e:
+        print(f"Could not auto-generate dataset: {e}")
+
 if os.path.exists(DATA_CSV_PATH):
     df_init = pd.read_csv(DATA_CSV_PATH)
     init_and_train_all(df_init)
@@ -282,7 +289,7 @@ def train(req: TrainRequest):
     
     # Append any new real irrigation records
     if req.records and len(req.records) > 0:
-        new_data = [r.dict() for r in req.records]
+        new_data = [r.model_dump() if hasattr(r, 'model_dump') else r.dict() for r in req.records]
         new_df = pd.DataFrame(new_data)
         df = pd.concat([df, new_df], ignore_index=True)
         # Save updated dataset

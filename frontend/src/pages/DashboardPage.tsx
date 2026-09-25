@@ -25,14 +25,16 @@ interface DashboardPageProps {
   pumpStatus: PumpStatus;
   prediction: AIPredictionResult | null;
   settings: SettingsData;
-  onTurnIrrigationOn: (duration?: number) => Promise<void>;
-  onTurnIrrigationOff: () => Promise<void>;
-  onTurnFillOn: () => Promise<void>;
-  onTurnFillOff: () => Promise<void>;
-  onEnableAuto: () => Promise<void>;
-  onDisableAuto: () => Promise<void>;
+  onTurnIrrigationOn: (duration?: number, forceManual?: boolean) => Promise<any>;
+  onTurnIrrigationOff: () => Promise<any>;
+  onTurnFillOn: () => Promise<any>;
+  onTurnFillOff: () => Promise<any>;
+  onEnableAuto: () => Promise<any>;
+  onDisableAuto: () => Promise<any>;
   onRefreshPrediction: () => void;
   isPredicting: boolean;
+  onUpdateTargetMoisture?: (target: number) => Promise<void>;
+  onUpdateStartThreshold?: (threshold: number) => Promise<void>;
 }
 
 export const DashboardPage: React.FC<DashboardPageProps> = ({
@@ -50,7 +52,9 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   onEnableAuto,
   onDisableAuto,
   onRefreshPrediction,
-  isPredicting
+  isPredicting,
+  onUpdateTargetMoisture,
+  onUpdateStartThreshold
 }) => {
   const isPump1Running = pumpStatus.pump1.running;
   const isPump2Running = pumpStatus.pump2.running;
@@ -176,12 +180,18 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         <div className="lg:col-span-2">
           <ControlPanel
             status={pumpStatus}
+            currentMoisture={currentMoisture}
+            targetMoisture={settings.aiTargetMoisture}
+            autoStartThreshold={settings.autoStartThreshold}
+            prediction={prediction}
             onTurnIrrigationOn={onTurnIrrigationOn}
             onTurnIrrigationOff={onTurnIrrigationOff}
             onTurnFillOn={onTurnFillOn}
             onTurnFillOff={onTurnFillOff}
             onEnableAuto={onEnableAuto}
             onDisableAuto={onDisableAuto}
+            onUpdateTargetMoisture={onUpdateTargetMoisture}
+            onUpdateStartThreshold={onUpdateStartThreshold}
           />
         </div>
 

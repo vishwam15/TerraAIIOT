@@ -44,6 +44,7 @@ export interface AIPredictionResult {
   current_moisture: number;
   target_moisture: number;
   safety_clamped: boolean;
+  is_fallback?: boolean;
   explanation: string;
 }
 

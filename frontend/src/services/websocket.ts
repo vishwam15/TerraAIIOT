@@ -10,8 +10,8 @@ class WebSocketClient {
   constructor() {
     const loc = window.location;
     const protocol = loc.protocol === 'https:' ? 'wss:' : 'ws:';
-    // Point to backend port 1608 or proxy /ws
-    this.url = import.meta.env.VITE_WS_URL || `${protocol}//${loc.hostname}:1608`;
+    // Point to backend port 1607 or proxy /ws
+    this.url = import.meta.env.VITE_WS_URL || `${protocol}//${loc.hostname}:1607`;
   }
 
   connect() {
