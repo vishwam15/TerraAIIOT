@@ -28,18 +28,16 @@ export const MutualExclusionBanner: React.FC<MutualExclusionBannerProps> = ({
           <strong className="text-slate-900">Pump 1 (Tank Filling)</strong> and <strong className="text-slate-900">Pump 2 (Irrigation)</strong> cannot operate simultaneously under any condition. If either pump starts, the other is automatically cut off at both the backend state machine and the ESP32 GPIO logic level.
         </p>
         <div className="mt-2.5 flex items-center gap-3 text-xs font-mono">
-          <span className={`px-2.5 py-0.5 rounded-md border font-semibold ${
-            pump1Running
+          <span className={`px-2.5 py-0.5 rounded-md border font-semibold ${pump1Running
               ? 'bg-sky-600 text-white border-sky-600 shadow-sm'
               : 'bg-white text-slate-600 border-slate-200'
-          }`}>
+            }`}>
             GPIO 6 (Fill): {pump1Running ? 'ACTIVE (PUMP 2 LOCKED)' : 'STANDBY'}
           </span>
-          <span className={`px-2.5 py-0.5 rounded-md border font-semibold ${
-            pump2Running
+          <span className={`px-2.5 py-0.5 rounded-md border font-semibold ${pump2Running
               ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
               : 'bg-white text-slate-600 border-slate-200'
-          }`}>
+            }`}>
             GPIO 7 (Irrigation): {pump2Running ? 'ACTIVE (PUMP 1 LOCKED)' : 'STANDBY'}
           </span>
         </div>

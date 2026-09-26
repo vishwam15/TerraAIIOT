@@ -245,7 +245,7 @@ export const App: React.FC = () => {
   };
 
   return (
-    <div className="flex min-h-screen bg-slate-950 text-slate-100 font-sans">
+    <div className="flex min-h-screen bg-gradient-to-br from-sky-50/70 via-white to-blue-50/50 text-slate-800 font-sans selection:bg-sky-200">
       {/* Sidebar Navigation */}
       <Sidebar
         currentTab={currentTab}
@@ -270,13 +270,16 @@ export const App: React.FC = () => {
 
         {/* Global Toast Notification */}
         {notification && (
-          <div className="sticky top-16 z-30 px-6 py-2 bg-emerald-500/15 border-b border-emerald-500/30 text-emerald-300 text-xs font-mono flex items-center justify-between backdrop-blur-md">
-            <span>{notification}</span>
-            <button onClick={() => setNotification(null)} className="text-slate-400 hover:text-white">✕</button>
+          <div className="sticky top-16 z-30 px-6 py-2.5 bg-emerald-50/95 border-b border-emerald-200 text-emerald-800 text-xs font-mono flex items-center justify-between backdrop-blur-xl shadow-xs animate-mac-fade-in">
+            <span className="flex items-center gap-2">
+              <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span>{notification}</span>
+            </span>
+            <button onClick={() => setNotification(null)} className="text-emerald-600 hover:text-emerald-950 p-1 font-bold">✕</button>
           </div>
         )}
 
-        <main className="p-6 flex-1 overflow-y-auto custom-scrollbar">
+        <main className="p-6 flex-1 overflow-y-auto custom-scrollbar animate-mac-fade-in" key={currentTab}>
           {currentTab === 'dashboard' && (
             <DashboardPage
               currentMoisture={currentMoisture}

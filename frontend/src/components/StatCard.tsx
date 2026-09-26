@@ -69,29 +69,29 @@ export const StatCard: React.FC<StatCardProps> = ({
   const scheme = colorStyles[colorScheme];
 
   return (
-    <div className={`rounded-xl border p-4 bg-gradient-to-b ${scheme.bg} glass-panel relative overflow-hidden transition-all duration-300 hover:border-sky-300 hover:shadow-md ${
-      highlight ? 'ring-2 ring-sky-400 shadow-md shadow-sky-500/10' : ''
+    <div className={`rounded-2xl border p-4 bg-gradient-to-b ${scheme.bg} glass-panel relative overflow-hidden transition-all duration-300 mac-card hover:-translate-y-1 hover:shadow-lg hover:shadow-sky-500/10 ${
+      highlight ? 'ring-2 ring-sky-400 shadow-md shadow-sky-500/15' : ''
     }`}>
-      <div className="flex items-center justify-between">
-        <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 truncate">
           {title}
         </span>
-        <div className={`p-2 rounded-lg ${scheme.iconBg}`}>
+        <div className={`p-2 rounded-xl shrink-0 ${scheme.iconBg} shadow-xs`}>
           <Icon className="h-4 w-4" />
         </div>
       </div>
 
-      <div className="mt-3 flex items-baseline gap-1.5">
+      <div className="mt-3 flex items-baseline gap-1.5 flex-wrap">
         <span className={`text-2xl lg:text-3xl font-extrabold ${scheme.valueColor} tracking-tight font-mono`}>
           {value}
         </span>
         {unit && <span className="text-sm font-bold text-slate-500">{unit}</span>}
       </div>
 
-      <div className="mt-2.5 flex items-center justify-between text-xs">
-        <span className="text-slate-500 font-mono text-[11px]">{subtitle}</span>
+      <div className="mt-2.5 flex items-center justify-between text-xs gap-2 pt-1 border-t border-sky-100/50">
+        <span className="text-slate-500 font-mono text-[11px] truncate">{subtitle}</span>
         {statusBadge && (
-          <span className={`px-2 py-0.5 rounded text-[10px] font-bold border uppercase tracking-wider ${badgeStyles[statusBadge.variant]}`}>
+          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border uppercase tracking-wider shrink-0 font-mono ${badgeStyles[statusBadge.variant]}`}>
             {statusBadge.text}
           </span>
         )}

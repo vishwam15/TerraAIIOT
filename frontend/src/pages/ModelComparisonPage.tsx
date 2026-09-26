@@ -48,11 +48,11 @@ export const ModelComparisonPage: React.FC = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-bold text-white tracking-tight flex items-center gap-2">
+        <h2 className="text-xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
           <GitCompare className="h-5 w-5 text-cyan-400" />
           <span>Multi-Model Regression Comparison (Section 19)</span>
         </h2>
-        <p className="text-xs text-slate-400 mt-1">
+        <p className="text-xs text-slate-500 mt-1">
           Objective algorithmic comparison evaluated on identical train/test splits • Choose the active production estimator
         </p>
       </div>
@@ -72,72 +72,74 @@ export const ModelComparisonPage: React.FC = () => {
           return (
             <div
               key={item.model}
-              className={`rounded-xl border p-5 glass-panel transition-all flex flex-col justify-between ${isActive
-                  ? 'border-emerald-500/50 bg-emerald-950/20 ring-1 ring-emerald-500/40 shadow-lg shadow-emerald-950/40'
-                  : 'border-slate-800 bg-slate-900/60 hover:border-slate-700'
-                }`}
+              className={`rounded-2xl border p-5 backdrop-blur-xl transition-all duration-300 flex flex-col justify-between shadow-sm hover:shadow-md ${
+                isActive
+                  ? 'border-emerald-400/80 bg-emerald-50/60 ring-2 ring-emerald-400/20'
+                  : 'border-sky-100 bg-white/80 hover:border-sky-300 hover:-translate-y-0.5'
+              }`}
             >
               <div>
-                <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-                  <span className="text-xs font-mono font-bold text-slate-400">ESTIMATOR</span>
+                <div className="flex items-center justify-between pb-3 border-b border-sky-100">
+                  <span className="text-xs font-mono font-bold text-slate-400 tracking-wider">ESTIMATOR</span>
                   {isActive && (
-                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 flex items-center gap-1 font-mono">
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700 border border-emerald-300 flex items-center gap-1 font-mono shadow-xs">
                       <Check className="h-3 w-3" /> ACTIVE
                     </span>
                   )}
                 </div>
 
-                <h3 className="text-base font-bold text-white mt-2 font-mono tracking-tight">
+                <h3 className="text-base font-bold text-slate-900 mt-2 font-mono tracking-tight">
                   {item.model}
                 </h3>
 
                 <div className="mt-4 space-y-2 text-xs font-mono">
-                  <div className="flex justify-between py-1 border-b border-slate-800/60">
-                    <span className="text-slate-400">R² Score:</span>
-                    <strong className="text-emerald-400 font-bold">{item.r2.toFixed(4)}</strong>
+                  <div className="flex justify-between py-1 border-b border-sky-100/60">
+                    <span className="text-slate-500">R² Score:</span>
+                    <strong className="text-emerald-600 font-bold">{item.r2.toFixed(4)}</strong>
                   </div>
-                  <div className="flex justify-between py-1 border-b border-slate-800/60">
-                    <span className="text-slate-400">5-Fold CV R²:</span>
-                    <strong className="text-cyan-400">{item.cv_mean_r2.toFixed(4)}</strong>
+                  <div className="flex justify-between py-1 border-b border-sky-100/60">
+                    <span className="text-slate-500">5-Fold CV R²:</span>
+                    <strong className="text-sky-600 font-semibold">{item.cv_mean_r2.toFixed(4)}</strong>
                   </div>
-                  <div className="flex justify-between py-1 border-b border-slate-800/60">
-                    <span className="text-slate-400">MAE (Error):</span>
-                    <span className="text-white font-semibold">{item.mae.toFixed(4)}s</span>
+                  <div className="flex justify-between py-1 border-b border-sky-100/60">
+                    <span className="text-slate-500">MAE (Error):</span>
+                    <span className="text-slate-800 font-semibold">{item.mae.toFixed(4)}s</span>
                   </div>
-                  <div className="flex justify-between py-1 border-b border-slate-800/60">
-                    <span className="text-slate-400">RMSE:</span>
-                    <span className="text-slate-300">{item.rmse.toFixed(4)}s</span>
+                  <div className="flex justify-between py-1 border-b border-sky-100/60">
+                    <span className="text-slate-500">RMSE:</span>
+                    <span className="text-slate-600">{item.rmse.toFixed(4)}s</span>
                   </div>
-                  <div className="flex justify-between py-1 border-b border-slate-800/60">
-                    <span className="text-slate-400">Train Latency:</span>
-                    <span className="text-slate-300">{item.train_time_ms}ms</span>
+                  <div className="flex justify-between py-1 border-b border-sky-100/60">
+                    <span className="text-slate-500">Train Latency:</span>
+                    <span className="text-slate-600">{item.train_time_ms}ms</span>
                   </div>
                   <div className="flex justify-between py-1">
-                    <span className="text-slate-400">Inference:</span>
-                    <span className="text-amber-400">{item.inference_time_ms}ms</span>
+                    <span className="text-slate-500">Inference:</span>
+                    <span className="text-amber-600 font-medium">{item.inference_time_ms}ms</span>
                   </div>
                 </div>
               </div>
 
-              <div className="mt-5 pt-3 border-t border-slate-800">
+              <div className="mt-5 pt-3 border-t border-sky-100">
                 <button
                   onClick={() => handleSelectModel(item.model)}
                   disabled={isActive || updating === item.model}
-                  className={`w-full py-2 px-3 rounded-lg text-xs font-bold font-mono transition-all flex items-center justify-center gap-1.5 ${isActive
-                      ? 'bg-slate-800 text-slate-400 cursor-default'
-                      : 'bg-slate-800 hover:bg-emerald-600 hover:text-white text-slate-200 border border-slate-700'
-                    }`}
+                  className={`w-full py-2 px-3 rounded-xl text-xs font-bold font-mono transition-all flex items-center justify-center gap-1.5 active:scale-95 shadow-sm ${
+                    isActive
+                      ? 'bg-slate-100 text-slate-400 border border-slate-200 cursor-default'
+                      : 'bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 text-white border border-sky-400/50 shadow-sky-500/20 hover:shadow-md'
+                  }`}
                 >
                   {isActive ? (
                     <>
-                      <Check className="h-3.5 w-3.5 text-emerald-400" />
+                      <Check className="h-3.5 w-3.5 text-emerald-600" />
                       <span>Current Active Model</span>
                     </>
                   ) : updating === item.model ? (
                     <span>Switching...</span>
                   ) : (
                     <>
-                      <Sparkles className="h-3.5 w-3.5 text-cyan-400" />
+                      <Sparkles className="h-3.5 w-3.5 text-sky-200" />
                       <span>Set as Active Model</span>
                     </>
                   )}
@@ -149,13 +151,13 @@ export const ModelComparisonPage: React.FC = () => {
       </div>
 
       {/* Comparison Matrix Table */}
-      <div className="rounded-xl border border-slate-800 bg-slate-900/80 p-5 glass-panel">
-        <h3 className="text-sm font-bold text-white uppercase tracking-wider mb-3">
+      <div className="rounded-xl border border-sky-100 bg-sky-50">
+        <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider mb-3">
           Detailed Comparison Matrix
         </h3>
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs font-mono">
-            <thead className="bg-slate-950 text-slate-400 uppercase text-[10px]">
+            <thead className="bg-sky-50">
               <tr>
                 <th className="py-2.5 px-3">Model</th>
                 <th className="py-2.5 px-3">Status</th>
@@ -171,7 +173,7 @@ export const ModelComparisonPage: React.FC = () => {
             <tbody className="divide-y divide-slate-800/60 text-slate-300">
               {comparisons.map((c) => (
                 <tr key={c.model} className="hover:bg-slate-800/40">
-                  <td className="py-2.5 px-3 font-bold text-white">{c.model}</td>
+                  <td className="py-2.5 px-3 font-bold text-slate-900">{c.model}</td>
                   <td className="py-2.5 px-3">
                     {c.model === activeModel ? (
                       <span className="text-emerald-400 font-bold">ACTIVE</span>
@@ -195,3 +197,4 @@ export const ModelComparisonPage: React.FC = () => {
     </div>
   );
 };
+
