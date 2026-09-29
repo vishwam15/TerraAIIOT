@@ -1,6 +1,9 @@
 const SensorReading = require('../models/SensorReading');
 const pumpController = require('./pumpController');
-const mqttService = require('./mqttService');
+
+function getMqttService() {
+  return require('./mqttService');
+}
 
 class ESP32Simulator {
   constructor() {
@@ -15,6 +18,11 @@ class ESP32Simulator {
 
   start() {
     if (this.isActive) return;
+    const mqtt = getMqttService();
+    if (mqtt.getESP32Status && mqtt.getESP32Status() === 'ONLINE') {
+      console.log('[SIMULATOR] Cannot start simulator: Real ESP32 is online.');
+      return;
+    }
     this.isActive = true;
     console.log('[SIMULATOR] ESP32-S3 Hardware Simulation Mode ACTIVATED (Source: DEMO DATA)');
     
@@ -35,7 +43,8 @@ class ESP32Simulator {
 
   async step() {
     // Live hardware telemetry takes precedence over simulator (Requirement 28)
-    if (mqttService.getESP32Status() === 'ONLINE') {
+    const mqtt = getMqttService();
+    if (mqtt.getESP32Status && mqtt.getESP32Status() === 'ONLINE') {
       return;
     }
 

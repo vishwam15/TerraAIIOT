@@ -288,6 +288,9 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
               <div>
                 <span className="text-xs font-mono font-semibold text-sky-700">ACTUATOR 2 • GPIO 7</span>
                 <h4 className="text-sm font-bold text-slate-900 mt-0.5">Pump 2 — Irrigation Pump</h4>
+                <span className="inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-sky-100 text-sky-700 border border-sky-300 font-mono tracking-wider">
+                  ⚡ MANUAL &amp; AUTO (AI)
+                </span>
               </div>
               <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold border font-mono ${isPump2Running
                 ? 'bg-sky-100 text-sky-800 border-sky-300 animate-pulse'
@@ -375,6 +378,9 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
               <div>
                 <span className="text-xs font-mono font-semibold text-emerald-700">ACTUATOR 1 • GPIO 6</span>
                 <h4 className="text-sm font-bold text-slate-900 mt-0.5">Pump 1 — Tank Filling Pump</h4>
+                <span className="inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300 font-mono tracking-wider">
+                  🔒 MANUAL ONLY — NO AUTO
+                </span>
               </div>
               <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold border font-mono ${isPump1Running
                 ? 'bg-emerald-100 text-emerald-800 border-emerald-300 animate-pulse'
@@ -384,13 +390,13 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
               </span>
             </div>
 
-            <div className="mt-3 flex items-center justify-between text-xs text-slate-500 p-2.5 rounded-xl bg-emerald-50/40 border border-emerald-100/60">
+            <div className="mt-3 flex items-center justify-between text-xs text-slate-500 p-2.5 rounded-xl bg-amber-50/50 border border-amber-100">
               <span className="flex items-center gap-1.5 font-mono">
-                <Clock className="h-3.5 w-3.5 text-emerald-600" />
+                <Clock className="h-3.5 w-3.5 text-amber-600" />
                 Runtime: <strong className="text-slate-800">{status.pump1.runtimeSeconds}s</strong>
               </span>
-              <span className="text-slate-600 font-mono text-[11px]">
-                Tank: {status.currentTankLevel === -1 ? 'NO ECHO' : `${status.currentTankLevel}%`}
+              <span className="text-amber-700 font-mono text-[11px] font-semibold">
+                🔒 Button-controlled only
               </span>
             </div>
 

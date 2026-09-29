@@ -67,6 +67,8 @@ export interface MLMetricsResponse {
   model_version: string;
   last_trained: string;
   training_samples: number;
+  total_samples?: number;
+  real_data_samples?: number;
   metrics: MLMetrics;
 }
 

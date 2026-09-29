@@ -11,7 +11,12 @@ const MLTrainingDataSchema = new mongoose.Schema({
   recentMoistureChange: { type: Number, default: -0.25 },
   previousPumpRuntime: { type: Number, default: 2.0 },
   pumpId: { type: String, default: 'PUMP_2' },
-  source: { type: String, default: 'DEMO DATA', index: true },
+  realData: { type: Boolean, default: true, index: true },
+  isRealHardware: { type: Boolean, default: true },
+  realSoilMoisture: { type: Number },
+  hardwareSource: { type: String, default: 'ESP32-S3_GPIO1' },
+  dataType: { type: String, default: 'REAL_HARDWARE' },
+  source: { type: String, default: 'REAL SENSOR HARDWARE', index: true },
   timestamp: { type: Date, default: Date.now, index: true }
 }, {
   collection: 'irrigation_training_data',

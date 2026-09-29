@@ -9,8 +9,8 @@
   {
     "id": "mqtt_broker_hivemq",
     "type": "mqtt-broker",
-    "name": "HiveMQ Public Broker",
-    "broker": "broker.hivemq.com",
+    "name": "Local Mosquitto Broker",
+    "broker": "127.0.0.1",
     "port": "1883",
     "clientid": "NodeRed-TerraWave-GW",
     "autoConnect": true,

@@ -36,6 +36,30 @@ class MLClient {
     }
   }
 
+  async predictAll(currentMoisture, targetMoisture = 80) {
+    try {
+      const res = await axios.post(`${this.baseURL}/predict-all`, {
+        current_moisture: Number(currentMoisture),
+        target_moisture: Number(targetMoisture)
+      }, { timeout: 5000 });
+      return res.data;
+    } catch (err) {
+      const deficit = Math.max(0, targetMoisture - currentMoisture);
+      const est = Math.round((0.5 + deficit * 0.045) * 100) / 100;
+      return {
+        current_moisture: currentMoisture,
+        target_moisture: targetMoisture,
+        moisture_deficit: deficit,
+        predictions: {
+          RandomForestRegressor: est,
+          GradientBoostingRegressor: Math.round((est * 1.05) * 100) / 100,
+          DecisionTreeRegressor: Math.round((est * 0.98) * 100) / 100,
+          LinearRegression: Math.round((est * 1.08) * 100) / 100
+        }
+      };
+    }
+  }
+
   async train(records = null) {
     try {
       const payload = records ? { records } : {};

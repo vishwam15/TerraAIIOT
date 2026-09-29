@@ -4,11 +4,25 @@ const express = require('express');
 const cors = require('cors');
 const { WebSocketServer, WebSocket } = require('ws');
 
+const os = require('os');
 const { connectDB } = require('./src/services/db');
 const mqttService = require('./src/services/mqttService');
 const pumpController = require('./src/services/pumpController');
 const simulator = require('./src/services/simulator');
 const apiRoutes = require('./src/routes/api');
+const { startMQTTProxy } = require('./src/services/mqttProxy');
+
+function getLocalIP() {
+  const ifaces = os.networkInterfaces();
+  for (const name of Object.keys(ifaces)) {
+    for (const iface of ifaces[name]) {
+      if (iface.family === 'IPv4' && !iface.internal) {
+        return iface.address;
+      }
+    }
+  }
+  return '127.0.0.1';
+}
 
 const app = express();
 const server = http.createServer(app);
@@ -23,11 +37,15 @@ app.use('/api', apiRoutes);
 
 // Root healthcheck
 app.get('/', (req, res) => {
+  const localIP = getLocalIP();
   res.json({
     app: 'TerraWave AI Backend Service',
-    version: '1.0.0',
+    version: '2.0.0',
     port: PORT,
     status: 'online',
+    localIP,
+    mqttProxy: `${localIP}:1884`,
+    mdns: 'terrawave.local:1884',
     timestamp: new Date()
   });
 });
@@ -54,15 +72,30 @@ mqttService.on('telemetry', ({ type, data }) => broadcast('SENSOR_UPDATE', data)
 mqttService.on('pump_status', (data) => broadcast('MQTT_PUMP_STATUS', data));
 mqttService.on('connection_change', (connected) => broadcast('MQTT_CONNECTION', { connected }));
 
-wss.on('connection', (ws) => {
-  // Send current status immediately upon connection
+wss.on('connection', async (ws) => {
+  // Send current status and latest telemetry immediately upon connection
+  let latestSensor = null;
+  try {
+    const SensorReading = require('./src/models/SensorReading');
+    latestSensor = await SensorReading.findOne().sort({ timestamp: -1 });
+  } catch (e) {}
+
   ws.send(JSON.stringify({
     type: 'INITIAL_STATE',
     data: {
       pumps: pumpController.getStatus(),
       mqttConnected: mqttService.isConnected,
-      esp32Status: mqttService.getESP32Status(),
-      simulatorActive: simulator.isActive
+      esp32Status: typeof mqttService.getESP32Status === 'function'
+        ? mqttService.getESP32Status()
+        : 'UNKNOWN',
+      simulatorActive: simulator.isActive,
+      latestSensor: latestSensor ? {
+        soilMoisture: latestSensor.soilMoisture,
+        rawADC: latestSensor.rawADC,
+        tankLevel: latestSensor.tankLevel,
+        source: latestSensor.source,
+        timestamp: latestSensor.timestamp
+      } : null
     },
     timestamp: new Date()
   }));
@@ -71,16 +104,35 @@ wss.on('connection', (ws) => {
 // Boot Server
 async function startServer() {
   await connectDB();
-  
-  // Start simulator by default so judges/professors see live dynamic telemetry immediately
-  simulator.start();
 
-  server.listen(PORT, () => {
+  // Start MQTT TCP Proxy: bridges 0.0.0.0:1884 -> 127.0.0.1:1883
+  // Allows ESP32 on Wi-Fi to reach the local Mosquitto broker
+  startMQTTProxy();
+  
+  // Do NOT auto-start simulator — real ESP32 hardware takes priority
+  console.log('[SERVER] Real ESP32 hardware telemetry mode ready. Simulator idle.');
+
+  const localIP = getLocalIP();
+
+  server.listen(PORT, '0.0.0.0', () => {
     console.log(`=======================================================`);
-    console.log(`🚀 TerraWave AI Backend running on http://localhost:${PORT}`);
-    console.log(`📡 WebSocket stream active on ws://localhost:${PORT}`);
-    console.log(`🔗 REST API Base: http://localhost:${PORT}/api`);
+    console.log(`🚀 TerraWave AI Backend  http://localhost:${PORT}`);
+    console.log(`📡 WebSocket             ws://localhost:${PORT}`);
+    console.log(`🔗 REST API              http://localhost:${PORT}/api`);
+    console.log(`📡 Local Wi-Fi IP        ${localIP}`);
+    console.log(`🔌 ESP32 MQTT proxy      ${localIP}:1884`);
     console.log(`=======================================================`);
+
+    // Broadcast mDNS so ESP32 firmware resolves "terrawave.local" -> this PC's current IP.
+    // Works on ANY network — ESP32 never needs a hardcoded IP again.
+    try {
+      const { Bonjour } = require('bonjour-service');
+      const bonjour = new Bonjour();
+      bonjour.publish({ name: 'terrawave', type: 'mqtt', port: 1884 });
+      console.log(`🌐 mDNS  terrawave.local:1884  (ESP32 auto-discovers this PC on any LAN)`);
+    } catch (e) {
+      console.warn(`[mDNS] Bonjour unavailable: ${e.message}`);
+    }
   });
 }
 

@@ -1,14 +1,34 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
 import { ModelComparisonItem } from '../types';
-import { GitCompare, Check, Sparkles, Clock, Zap, Award } from 'lucide-react';
+import { GitCompare, Check, Sparkles, Clock, Zap, Award, LineChart as ChartIcon, RefreshCw } from 'lucide-react';
+import {
+  ResponsiveContainer,
+  ComposedChart,
+  Line,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ReferenceLine
+} from 'recharts';
 
 export const ModelComparisonPage: React.FC = () => {
   const [comparisons, setComparisons] = useState<ModelComparisonItem[]>([]);
   const [activeModel, setActiveModel] = useState<string>('RandomForestRegressor');
-  const [loading, setLoading] = useState<boolean>(true);
+  const [, setLoading] = useState<boolean>(true);
   const [updating, setUpdating] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [minuteData, setMinuteData] = useState<any[]>([]);
+  const [visibleModels, setVisibleModels] = useState<Record<string, boolean>>({
+    RandomForestRegressor: true,
+    GradientBoostingRegressor: true,
+    DecisionTreeRegressor: true,
+    LinearRegression: true
+  });
+  const [refreshing, setRefreshing] = useState<boolean>(false);
 
   const fetchComparisons = async () => {
     try {
@@ -25,8 +45,36 @@ export const ModelComparisonPage: React.FC = () => {
     }
   };
 
+  const fetchMinuteAnalytics = async () => {
+    try {
+      setRefreshing(true);
+      const res = await api.getMinuteAnalytics(30, 80);
+      if (res.success && res.data) {
+        // Flatten predictions for Recharts
+        const formatted = res.data.map((d: any) => ({
+          timeStr: d.timeStr,
+          timestamp: d.timestamp,
+          avgMoisture: d.avgMoisture,
+          sampleCount: d.sampleCount,
+          RandomForestRegressor: d.predictions?.RandomForestRegressor ?? 0,
+          GradientBoostingRegressor: d.predictions?.GradientBoostingRegressor ?? 0,
+          DecisionTreeRegressor: d.predictions?.DecisionTreeRegressor ?? 0,
+          LinearRegression: d.predictions?.LinearRegression ?? 0
+        }));
+        setMinuteData(formatted);
+      }
+    } catch (err) {
+      console.warn('Error fetching minute analytics:', err);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   useEffect(() => {
     fetchComparisons();
+    fetchMinuteAnalytics();
+    const interval = setInterval(fetchMinuteAnalytics, 30000); // refresh every 30s
+    return () => clearInterval(interval);
   }, []);
 
   const handleSelectModel = async (modelName: string) => {
@@ -45,24 +93,258 @@ export const ModelComparisonPage: React.FC = () => {
     }
   };
 
+  const toggleModelVisibility = (modelName: string) => {
+    setVisibleModels(prev => ({ ...prev, [modelName]: !prev[modelName] }));
+  };
+
+  const macTooltipStyle = {
+    backgroundColor: '#ffffff',
+    borderColor: '#bae6fd',
+    borderRadius: '0.75rem',
+    fontSize: '0.75rem',
+    color: '#0f172a',
+    boxShadow: '0 8px 24px -4px rgba(2, 132, 199, 0.12)'
+  };
+
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
-          <GitCompare className="h-5 w-5 text-cyan-400" />
-          <span>Multi-Model Regression Comparison (Section 19)</span>
-        </h2>
-        <p className="text-xs text-slate-500 mt-1">
-          Objective algorithmic comparison evaluated on identical train/test splits • Choose the active production estimator
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
+            <GitCompare className="h-5 w-5 text-sky-600" />
+            <span>Multi-Model Regression Comparison &amp; Per-Minute Analytics</span>
+          </h2>
+          <p className="text-xs text-slate-500 mt-1">
+            Per-minute time-based performance comparison across all 4 machine learning estimators • Evaluated on real sensor data
+          </p>
+        </div>
+
+        <button
+          onClick={fetchMinuteAnalytics}
+          disabled={refreshing}
+          className="px-3.5 py-2 rounded-xl bg-sky-50 hover:bg-sky-100 text-sky-700 border border-sky-200 text-xs font-mono font-bold flex items-center gap-2 transition-all self-start sm:self-auto"
+        >
+          <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? 'animate-spin' : ''}`} />
+          <span>Refresh Minute Data</span>
+        </button>
       </div>
 
       {notice && (
-        <div className="p-3.5 rounded-xl border border-cyan-500/40 bg-cyan-500/10 text-cyan-300 text-xs flex items-center gap-2 font-mono">
-          <Sparkles className="h-4 w-4 shrink-0" />
+        <div className="p-3.5 rounded-xl border border-sky-200 bg-sky-50 text-sky-800 text-xs flex items-center gap-2 font-mono shadow-xs">
+          <Sparkles className="h-4 w-4 shrink-0 text-sky-600" />
           <span>{notice}</span>
         </div>
       )}
+
+      {/* ========================================================================= */}
+      {/* 🚀 PER-MINUTE TIME-BASED MULTI-MODEL PREDICTION GRAPH                     */}
+      {/* ========================================================================= */}
+      <div className="rounded-2xl border-2 border-sky-300 bg-white/95 p-6 glass-panel shadow-md">
+        <div className="flex flex-col md:flex-row md:items-center justify-between pb-4 border-b border-sky-100 gap-3">
+          <div>
+            <div className="flex items-center gap-2">
+              <ChartIcon className="h-4 w-4 text-sky-600" />
+              <h3 className="text-base font-extrabold text-slate-900 tracking-tight">
+                Per-Minute ML Model Prediction Timeline (Time-Based)
+              </h3>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-sky-50 text-sky-700 border border-sky-200">
+                1 Min / Tick
+              </span>
+            </div>
+            <p className="text-xs text-slate-500 mt-1">
+              Compares predicted pump runtimes (seconds) minute-by-minute as soil moisture fluctuates over time
+            </p>
+          </div>
+
+          {/* Model Display Toggles */}
+          <div className="flex flex-wrap items-center gap-2 text-xs font-mono">
+            <button
+              onClick={() => toggleModelVisibility('RandomForestRegressor')}
+              className={`px-2.5 py-1 rounded-lg border text-[11px] font-bold flex items-center gap-1.5 transition-all ${
+                visibleModels.RandomForestRegressor
+                  ? 'bg-emerald-50 text-emerald-800 border-emerald-300 shadow-xs'
+                  : 'bg-slate-50 text-slate-400 border-slate-200 opacity-60'
+              }`}
+            >
+              <span className="h-2 w-2 rounded-full bg-emerald-500"></span>
+              <span>Random Forest</span>
+            </button>
+
+            <button
+              onClick={() => toggleModelVisibility('GradientBoostingRegressor')}
+              className={`px-2.5 py-1 rounded-lg border text-[11px] font-bold flex items-center gap-1.5 transition-all ${
+                visibleModels.GradientBoostingRegressor
+                  ? 'bg-purple-50 text-purple-800 border-purple-300 shadow-xs'
+                  : 'bg-slate-50 text-slate-400 border-slate-200 opacity-60'
+              }`}
+            >
+              <span className="h-2 w-2 rounded-full bg-purple-500"></span>
+              <span>Gradient Boosting</span>
+            </button>
+
+            <button
+              onClick={() => toggleModelVisibility('DecisionTreeRegressor')}
+              className={`px-2.5 py-1 rounded-lg border text-[11px] font-bold flex items-center gap-1.5 transition-all ${
+                visibleModels.DecisionTreeRegressor
+                  ? 'bg-amber-50 text-amber-800 border-amber-300 shadow-xs'
+                  : 'bg-slate-50 text-slate-400 border-slate-200 opacity-60'
+              }`}
+            >
+              <span className="h-2 w-2 rounded-full bg-amber-500"></span>
+              <span>Decision Tree</span>
+            </button>
+
+            <button
+              onClick={() => toggleModelVisibility('LinearRegression')}
+              className={`px-2.5 py-1 rounded-lg border text-[11px] font-bold flex items-center gap-1.5 transition-all ${
+                visibleModels.LinearRegression
+                  ? 'bg-sky-50 text-sky-800 border-sky-300 shadow-xs'
+                  : 'bg-slate-50 text-slate-400 border-slate-200 opacity-60'
+              }`}
+            >
+              <span className="h-2 w-2 rounded-full bg-sky-500"></span>
+              <span>Linear Regression</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Per-Minute Chart */}
+        <div className="h-80 sm:h-96 w-full pt-4">
+          {minuteData.length === 0 ? (
+            <div className="h-full flex items-center justify-center text-slate-400 text-sm font-mono">
+              Loading minute-by-minute model analytics...
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height="100%">
+              <ComposedChart data={minuteData} margin={{ top: 10, right: 30, left: -5, bottom: 10 }}>
+                <defs>
+                  <linearGradient id="moistureGradientMinute" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#38bdf8" stopOpacity={0.25} />
+                    <stop offset="95%" stopColor="#38bdf8" stopOpacity={0.0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                
+                {/* Per-Minute Timestamp on X-Axis */}
+                <XAxis
+                  dataKey="timeStr"
+                  stroke="#64748b"
+                  tick={{ fontSize: 10, fill: '#475569', fontFamily: 'monospace' }}
+                  tickMargin={8}
+                />
+
+                {/* Left Axis: Soil Moisture % */}
+                <YAxis
+                  yAxisId="moisture"
+                  domain={[0, 100]}
+                  stroke="#0284c7"
+                  tick={{ fontSize: 10, fill: '#0284c7', fontFamily: 'monospace' }}
+                  ticks={[0, 25, 50, 75, 100]}
+                  unit="%"
+                />
+
+                {/* Right Axis: Predicted Runtime (Seconds) */}
+                <YAxis
+                  yAxisId="runtime"
+                  orientation="right"
+                  domain={[0, 'auto']}
+                  stroke="#6b7280"
+                  tick={{ fontSize: 10, fill: '#374151', fontFamily: 'monospace' }}
+                  unit="s"
+                />
+
+                <Tooltip
+                  contentStyle={macTooltipStyle}
+                  formatter={(val: any, name: any) => {
+                    if (name === 'Average Soil Moisture') return [`${val}%`, 'Soil Moisture'];
+                    return [`${val}s`, name];
+                  }}
+                  labelFormatter={(label) => `Time (Minute): ${label}`}
+                />
+
+                {/* Target Moisture Line */}
+                <ReferenceLine
+                  yAxisId="moisture"
+                  y={80}
+                  stroke="#0284c7"
+                  strokeDasharray="4 4"
+                  label={{ value: 'Target 80%', fill: '#0284c7', fontSize: 10, position: 'insideTopLeft' }}
+                />
+
+                {/* Background Moisture Area */}
+                <Area
+                  yAxisId="moisture"
+                  type="monotone"
+                  dataKey="avgMoisture"
+                  name="Average Soil Moisture"
+                  stroke="#38bdf8"
+                  strokeWidth={2}
+                  fill="url(#moistureGradientMinute)"
+                  fillOpacity={1}
+                />
+
+                {/* Model 1: Random Forest (Green) */}
+                {visibleModels.RandomForestRegressor && (
+                  <Line
+                    yAxisId="runtime"
+                    type="monotone"
+                    dataKey="RandomForestRegressor"
+                    name="Random Forest Regressor"
+                    stroke="#10b981"
+                    strokeWidth={3}
+                    dot={{ r: 3, fill: '#10b981' }}
+                    activeDot={{ r: 6 }}
+                  />
+                )}
+
+                {/* Model 2: Gradient Boosting (Purple) */}
+                {visibleModels.GradientBoostingRegressor && (
+                  <Line
+                    yAxisId="runtime"
+                    type="monotone"
+                    dataKey="GradientBoostingRegressor"
+                    name="Gradient Boosting Regressor"
+                    stroke="#8b5cf6"
+                    strokeWidth={2.5}
+                    dot={{ r: 3, fill: '#8b5cf6' }}
+                    activeDot={{ r: 6 }}
+                  />
+                )}
+
+                {/* Model 3: Decision Tree (Amber) */}
+                {visibleModels.DecisionTreeRegressor && (
+                  <Line
+                    yAxisId="runtime"
+                    type="monotone"
+                    dataKey="DecisionTreeRegressor"
+                    name="Decision Tree Regressor"
+                    stroke="#f59e0b"
+                    strokeWidth={2}
+                    strokeDasharray="3 3"
+                    dot={{ r: 2.5, fill: '#f59e0b' }}
+                    activeDot={{ r: 5 }}
+                  />
+                )}
+
+                {/* Model 4: Linear Regression (Blue) */}
+                {visibleModels.LinearRegression && (
+                  <Line
+                    yAxisId="runtime"
+                    type="monotone"
+                    dataKey="LinearRegression"
+                    name="Linear Regression"
+                    stroke="#0284c7"
+                    strokeWidth={2}
+                    strokeDasharray="5 5"
+                    dot={{ r: 2.5, fill: '#0284c7' }}
+                    activeDot={{ r: 5 }}
+                  />
+                )}
+              </ComposedChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+      </div>
 
       {/* Model Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -151,13 +433,13 @@ export const ModelComparisonPage: React.FC = () => {
       </div>
 
       {/* Comparison Matrix Table */}
-      <div className="rounded-xl border border-sky-100 bg-sky-50">
+      <div className="rounded-xl border border-sky-100 bg-white p-5 shadow-sm">
         <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider mb-3">
-          Detailed Comparison Matrix
+          Detailed Model Comparison Matrix
         </h3>
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs font-mono">
-            <thead className="bg-sky-50">
+            <thead className="bg-sky-50 text-slate-700">
               <tr>
                 <th className="py-2.5 px-3">Model</th>
                 <th className="py-2.5 px-3">Status</th>
@@ -170,24 +452,24 @@ export const ModelComparisonPage: React.FC = () => {
                 <th className="py-2.5 px-3">Inference (ms)</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/60 text-slate-300">
+            <tbody className="divide-y divide-slate-100 text-slate-700">
               {comparisons.map((c) => (
-                <tr key={c.model} className="hover:bg-slate-800/40">
+                <tr key={c.model} className="hover:bg-sky-50/50">
                   <td className="py-2.5 px-3 font-bold text-slate-900">{c.model}</td>
                   <td className="py-2.5 px-3">
                     {c.model === activeModel ? (
-                      <span className="text-emerald-400 font-bold">ACTIVE</span>
+                      <span className="text-emerald-600 font-bold">ACTIVE</span>
                     ) : (
-                      <span className="text-slate-500">STANDBY</span>
+                      <span className="text-slate-400">STANDBY</span>
                     )}
                   </td>
-                  <td className="py-2.5 px-3 text-cyan-400">{c.mae.toFixed(4)}</td>
+                  <td className="py-2.5 px-3 text-sky-700 font-semibold">{c.mae.toFixed(4)}s</td>
                   <td className="py-2.5 px-3">{c.mse.toFixed(4)}</td>
                   <td className="py-2.5 px-3">{c.rmse.toFixed(4)}</td>
-                  <td className="py-2.5 px-3 font-bold text-emerald-400">{c.r2.toFixed(4)}</td>
+                  <td className="py-2.5 px-3 font-bold text-emerald-600">{c.r2.toFixed(4)}</td>
                   <td className="py-2.5 px-3">{c.cv_mean_r2.toFixed(4)}</td>
                   <td className="py-2.5 px-3">{c.train_time_ms}</td>
-                  <td className="py-2.5 px-3 text-amber-400">{c.inference_time_ms}</td>
+                  <td className="py-2.5 px-3 text-amber-600">{c.inference_time_ms}</td>
                 </tr>
               ))}
             </tbody>
@@ -197,4 +479,3 @@ export const ModelComparisonPage: React.FC = () => {
     </div>
   );
 };
-

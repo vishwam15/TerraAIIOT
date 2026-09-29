@@ -29,10 +29,12 @@ router.post('/automation/disable', pumpCtrl.disableAutomation);
 // --- Machine Learning Routes ---
 router.post('/ml/predict', mlCtrl.predict);
 router.post('/ml/train', mlCtrl.train);
+router.post('/ml/mine-and-train', mlCtrl.mineSensorDataAndTrain);
 router.get('/ml/metrics', mlCtrl.getMetrics);
 router.get('/ml/feature-importance', mlCtrl.getFeatureImportance);
 router.get('/ml/predictions', mlCtrl.getPredictions);
 router.get('/ml/models', mlCtrl.compareModels);
+router.get('/ml/minute-analytics', mlCtrl.getMinuteAnalytics);
 router.post('/ml/set-active-model', mlCtrl.setActiveModel);
 
 // --- Analytics & History Routes ---

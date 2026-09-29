@@ -50,6 +50,8 @@ active_model_name = "RandomForestRegressor"
 model_version = "v1.0"
 last_trained_time = None
 training_samples_count = 0
+total_samples_count = 0
+real_data_samples_count = 0
 
 class PredictionRequest(BaseModel):
     current_moisture: float
@@ -68,8 +70,9 @@ class TrainRecord(BaseModel):
     recentMoistureChange: Optional[float] = -0.25
     previousPumpRuntime: Optional[float] = 2.0
     soilCondition: Optional[str] = "moderate"
-    source: Optional[str] = "LIVE DATA"
+    source: Optional[str] = "REAL SENSOR HARDWARE"
     timestamp: Optional[str] = None
+    realData: Optional[bool] = True
 
 class TrainRequest(BaseModel):
     records: Optional[List[TrainRecord]] = None
@@ -78,7 +81,16 @@ class ActiveModelRequest(BaseModel):
     model_name: str
 
 def init_and_train_all(df: pd.DataFrame):
-    global model_registry, model_metrics, last_trained_time, training_samples_count
+    global model_registry, model_metrics, last_trained_time, training_samples_count, total_samples_count, real_data_samples_count
+    
+    total_samples_count = len(df)
+    training_samples_count = len(df)
+    
+    if "source" in df.columns:
+        real_mask = df["source"].astype(str).str.contains("REAL|LIVE|esp32", case=False, na=False)
+        real_data_samples_count = int(real_mask.sum())
+    else:
+        real_data_samples_count = 0
     
     # Calculate deficit if missing
     if "moistureDeficit" not in df.columns:
@@ -92,7 +104,6 @@ def init_and_train_all(df: pd.DataFrame):
     y = df[TARGET_COL].copy()
     
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-    training_samples_count = len(X_train)
     
     candidates = {
         "RandomForestRegressor": RandomForestRegressor(n_estimators=100, max_depth=8, random_state=42),
@@ -280,9 +291,49 @@ def predict(req: PredictionRequest):
         "explanation": explanation
     }
 
+@app.post("/predict-all")
+def predict_all(req: PredictionRequest):
+    global model_registry, model_metrics
+    results = {}
+    deficit = max(0.0, req.target_moisture - req.current_moisture)
+    
+    if req.current_moisture >= req.target_moisture:
+        for name in ["RandomForestRegressor", "GradientBoostingRegressor", "DecisionTreeRegressor", "LinearRegression"]:
+            results[name] = 0.0
+        return {
+            "current_moisture": req.current_moisture,
+            "target_moisture": req.target_moisture,
+            "moisture_deficit": 0.0,
+            "predictions": results
+        }
+        
+    feature_vector = pd.DataFrame([{
+        "initialMoisture": req.current_moisture,
+        "targetMoisture": req.target_moisture,
+        "moistureDeficit": deficit,
+        "recentMoistureChange": req.recent_moisture_change if req.recent_moisture_change is not None else -0.25,
+        "previousPumpRuntime": req.previous_pump_runtime if req.previous_pump_runtime is not None else 2.0
+    }])
+    
+    for name in ["RandomForestRegressor", "GradientBoostingRegressor", "DecisionTreeRegressor", "LinearRegression"]:
+        if name in model_registry:
+            pred = float(model_registry[name].predict(feature_vector)[0])
+            clamped = max(0.1, min(30.0, pred))
+            results[name] = round(clamped, 2)
+        else:
+            # Physics-based baseline
+            results[name] = round(max(0.1, min(30.0, 0.5 + deficit * 0.045)), 2)
+            
+    return {
+        "current_moisture": req.current_moisture,
+        "target_moisture": req.target_moisture,
+        "moisture_deficit": round(deficit, 1),
+        "predictions": results
+    }
+
 @app.post("/train")
 def train(req: TrainRequest):
-    global model_registry, model_metrics, last_trained_time
+    global model_registry, model_metrics, last_trained_time, total_samples_count, real_data_samples_count
     
     # Load base dataset
     df = pd.read_csv(DATA_CSV_PATH) if os.path.exists(DATA_CSV_PATH) else pd.DataFrame()
@@ -306,19 +357,22 @@ def train(req: TrainRequest):
         "active_model": active_model_name,
         "metrics": model_metrics.get(active_model_name, {}),
         "timestamp": last_trained_time,
-        "total_samples": len(df)
+        "total_samples": len(df),
+        "real_data_samples": real_data_samples_count
     }
 
 @app.get("/metrics")
 def get_metrics():
-    global active_model_name, model_metrics
+    global active_model_name, model_metrics, total_samples_count, real_data_samples_count
     if active_model_name not in model_metrics:
         raise HTTPException(status_code=404, detail="Metrics not available.")
     return {
         "model": active_model_name,
         "model_version": model_version,
         "last_trained": last_trained_time,
-        "training_samples": training_samples_count,
+        "training_samples": total_samples_count,
+        "total_samples": total_samples_count,
+        "real_data_samples": real_data_samples_count,
         "metrics": model_metrics[active_model_name]
     }
 

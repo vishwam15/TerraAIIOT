@@ -69,7 +69,9 @@ export const App: React.FC = () => {
       ]);
 
       if (latestRes.success && latestRes.data) {
-        setCurrentMoisture(latestRes.data.soilMoisture);
+        const initMoisture = Number(latestRes.data.soilMoisture);
+        console.log(`[Frontend] Soil moisture updated: ${initMoisture.toFixed(1)}% (Initial Load)`);
+        setCurrentMoisture(initMoisture);
         setRawADC(latestRes.data.rawADC || 2300);
         setTankLevel(latestRes.data.tankLevel);
         setSource(latestRes.data.source || 'DEMO DATA');
@@ -117,10 +119,27 @@ export const App: React.FC = () => {
     const unsubscribe = wsClient.subscribe((type, data) => {
       if (type === 'CONNECTION_STATUS') {
         setIsLive(data.connected);
+      } else if (type === 'INITIAL_STATE') {
+        if (data.pumps) setPumpStatus(data.pumps);
+        if (data.esp32Status) setEsp32Status(data.esp32Status);
+        if (data.mqttConnected !== undefined) setMqttConnected(data.mqttConnected);
+        if (data.simulatorActive !== undefined) setSimulatorActive(data.simulatorActive);
+        if (data.latestSensor) {
+          const m = Number(data.latestSensor.soilMoisture);
+          if (!isNaN(m)) setCurrentMoisture(m);
+          if (data.latestSensor.rawADC != null) setRawADC(data.latestSensor.rawADC);
+          if (data.latestSensor.tankLevel != null) setTankLevel(data.latestSensor.tankLevel);
+          if (data.latestSensor.source) setSource(data.latestSensor.source);
+        }
       } else if (type === 'SENSOR_UPDATE') {
-        setCurrentMoisture(data.soilMoisture);
-        if (data.rawADC) setRawADC(data.rawADC);
-        if (data.tankLevel !== undefined) setTankLevel(data.tankLevel);
+        const moisture = Number(data.soilMoisture);
+        if (!isNaN(moisture)) {
+          // Explicit Console Log as requested: [Frontend] Soil moisture updated: 42.6%
+          console.log(`[Frontend] Soil moisture updated: ${moisture.toFixed(1)}%`);
+          setCurrentMoisture(moisture);
+        }
+        if (data.rawADC != null) setRawADC(data.rawADC);
+        if (data.tankLevel !== undefined && data.tankLevel !== null) setTankLevel(data.tankLevel);
         if (data.source) setSource(data.source);
 
         setSensorHistory(prev => {
@@ -129,6 +148,14 @@ export const App: React.FC = () => {
         });
       } else if (type === 'PUMP_STATUS_UPDATE') {
         setPumpStatus(data);
+      } else if (type === 'MQTT_PUMP_STATUS') {
+        const { pumpId, action } = data;
+        const isOn = action === 'ON';
+        setPumpStatus(prev => ({
+          ...prev,
+          pump1: pumpId === 'PUMP_1' ? { ...prev.pump1, running: isOn, status: isOn ? 'ON' : 'OFF' } : (isOn ? { ...prev.pump1, running: false, status: 'OFF' } : prev.pump1),
+          pump2: pumpId === 'PUMP_2' ? { ...prev.pump2, running: isOn, status: isOn ? 'ON' : 'OFF' } : (isOn ? { ...prev.pump2, running: false, status: 'OFF' } : prev.pump2)
+        }));
       } else if (type === 'AI_IRRIGATION_STARTED') {
         showNotification(`AI Irrigation Started: Pump 2 running for ${data.predictedRuntime}s.`);
       } else if (type === 'IRRIGATION_CYCLE_COMPLETED') {
@@ -138,7 +165,7 @@ export const App: React.FC = () => {
       }
     });
 
-    // Fallback polling every 5s
+    // Fallback polling every 2s to keep UI perfectly synchronized
     const pollInterval = setInterval(async () => {
       try {
         const [pRes, sRes] = await Promise.all([
@@ -146,13 +173,21 @@ export const App: React.FC = () => {
           api.getLatestSensors()
         ]);
         if (pRes.success) setPumpStatus(pRes.data);
-        if (sRes.success) {
+        if (sRes.success && sRes.data) {
           setEsp32Status(sRes.data.esp32Status || 'ONLINE');
+          const m = Number(sRes.data.soilMoisture);
+          if (!isNaN(m)) {
+            setCurrentMoisture(m);
+          }
+          if (sRes.data.rawADC != null) setRawADC(sRes.data.rawADC);
+          if (sRes.data.tankLevel !== undefined && sRes.data.tankLevel !== null) setTankLevel(sRes.data.tankLevel);
+          if (sRes.data.source) setSource(sRes.data.source);
+          if (sRes.data.simulatorActive !== undefined) setSimulatorActive(sRes.data.simulatorActive);
         }
       } catch (e) {
         // silent
       }
-    }, 5000);
+    }, 2000);
 
     return () => {
       unsubscribe();
@@ -337,7 +372,14 @@ export const App: React.FC = () => {
           )}
 
           {currentTab === 'ml-analytics' && (
-            <MLAnalyticsPage />
+            <MLAnalyticsPage
+              currentMoisture={currentMoisture}
+              rawADC={rawADC}
+              sensorHistory={sensorHistory}
+              prediction={prediction}
+              targetMoisture={settings.aiTargetMoisture}
+              isLive={isLive}
+            />
           )}
 
           {currentTab === 'model-comparison' && (

@@ -80,7 +80,10 @@ export const TankLevelGauge: React.FC<TankLevelGaugeProps> = ({ tankLevel }) => 
               </p>
               <div className="mt-2.5 flex items-center gap-2 text-xs font-mono text-sky-700">
                 <Waves className="h-3.5 w-3.5 text-sky-500" />
-                <span>Estimated depth: ~{Math.round(40 - (levelPercent / 100) * 35)} cm</span>
+                <span>Water depth: ~{((levelPercent / 100) * 8.0).toFixed(1)} cm / 8.0 cm</span>
+              </div>
+              <div className="mt-1 text-[10px] font-mono text-slate-500">
+                Auto-fill: ON &le; 3.0 cm &bull; OFF &ge; 7.0 cm
               </div>
             </div>
           )}

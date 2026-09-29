@@ -114,16 +114,50 @@ exports.toggleSimulatedNoEcho = (req, res) => {
 exports.receiveNodeRedTelemetry = async (req, res) => {
   try {
     const { sensorId, soilMoisture, rawADC, tankLevel, source } = req.body;
-    if (typeof soilMoisture !== 'undefined') {
+    mqttService.lastSeenESP32 = Date.now();
+
+    // Auto-disable simulator when real data is received
+    if (simulator.isActive) {
+      console.log('[Node-RED] Real telemetry ingested! Stopping simulator.');
+      simulator.stop();
+    }
+
+    if (typeof soilMoisture !== 'undefined' && soilMoisture !== null) {
+      const now = Date.now();
+      if (now - (mqttService.lastMoistureTimestamp || 0) < 700) {
+        return res.json({ success: true, message: 'Node-RED telemetry debounced (already ingested by MQTT)' });
+      }
+      mqttService.lastMoistureTimestamp = now;
+
+      const moisture = Number(soilMoisture);
+      console.log(`[MQTT via Node-RED] Soil moisture received: ${moisture.toFixed(1)}%`);
+
+      const effectiveTank = (typeof tankLevel !== 'undefined' && tankLevel !== null)
+        ? Number(tankLevel)
+        : pumpController.currentTankLevel;
+
       const reading = await SensorReading.create({
         sensorId: sensorId || 'ESP32-S3-001',
-        soilMoisture: Number(soilMoisture),
+        soilMoisture: Math.round(moisture * 10) / 10,
         rawADC: rawADC,
-        tankLevel: tankLevel !== undefined ? Number(tankLevel) : -1,
+        tankLevel: effectiveTank,
         source: source || 'esp32',
         timestamp: new Date()
       });
-      await pumpController.handleMoistureUpdate(Number(soilMoisture), tankLevel, source || 'esp32');
+
+      await pumpController.handleMoistureUpdate(moisture, effectiveTank, source || 'esp32');
+
+      const effectiveWaterLevelCm = (typeof req.body.waterLevelCm !== 'undefined' && req.body.waterLevelCm !== null)
+        ? Number(req.body.waterLevelCm)
+        : (effectiveTank >= 0 ? Math.round(((effectiveTank / 100) * 8.0) * 10) / 10 : -1);
+
+      await pumpController.handleTankLevelUpdate(effectiveWaterLevelCm, source || 'esp32');
+
+      // Broadcast to WebSocket clients
+      mqttService.emit('telemetry', {
+        type: 'moisture',
+        data: reading
+      });
     }
     res.json({ success: true, message: 'Node-RED telemetry ingested' });
   } catch (err) {
@@ -134,14 +168,11 @@ exports.receiveNodeRedTelemetry = async (req, res) => {
 exports.receiveNodeRedPumpEvent = async (req, res) => {
   try {
     const { pumpId, action } = req.body;
+    mqttService.lastSeenESP32 = Date.now();
     if (pumpId && action) {
-      await PumpEvent.create({
-        pumpId: pumpId === 'PUMP_1' ? 'PUMP_1' : 'PUMP_2',
-        action: action.toUpperCase() === 'ON' ? 'ON' : 'OFF',
-        reason: 'node_red_relay',
-        soilMoistureAtEvent: pumpController.currentMoisture,
-        source: 'node_red'
-      });
+      const isOn = action.toUpperCase() === 'ON';
+      const normalizedPumpId = pumpId === 'PUMP_1' ? 'PUMP_1' : 'PUMP_2';
+      await pumpController.syncHardwarePumpStatus(normalizedPumpId, isOn);
     }
     res.json({ success: true, message: `Node-RED pump event ${pumpId} -> ${action} recorded` });
   } catch (err) {

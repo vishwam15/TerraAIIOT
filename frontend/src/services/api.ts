@@ -104,6 +104,11 @@ export const api = {
     return res.json();
   },
 
+  async mineAndTrainModel(): Promise<any> {
+    const res = await fetch(`${API_BASE}/ml/mine-and-train`, { method: 'POST' });
+    return res.json();
+  },
+
   async getMLMetrics(): Promise<{ success: boolean; data: MLMetricsResponse }> {
     const res = await fetch(`${API_BASE}/ml/metrics`);
     return res.json();
@@ -116,6 +121,27 @@ export const api = {
 
   async getModelComparisons(): Promise<{ success: boolean; data: { active_model: string; comparison: ModelComparisonItem[] } }> {
     const res = await fetch(`${API_BASE}/ml/models`);
+    return res.json();
+  },
+
+  async getMinuteAnalytics(minutes = 30, targetMoisture = 80): Promise<{
+    success: boolean;
+    count: number;
+    data: Array<{
+      timeStr: string;
+      timestamp: number;
+      avgMoisture: number;
+      sampleCount: number;
+      isRealData: boolean;
+      predictions: {
+        RandomForestRegressor: number;
+        GradientBoostingRegressor: number;
+        DecisionTreeRegressor: number;
+        LinearRegression: number;
+      };
+    }>;
+  }> {
+    const res = await fetch(`${API_BASE}/ml/minute-analytics?minutes=${minutes}&targetMoisture=${targetMoisture}`);
     return res.json();
   },
 
