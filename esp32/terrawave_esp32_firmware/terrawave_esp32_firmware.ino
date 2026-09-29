@@ -320,17 +320,15 @@ void loop() {
     if (mqttClient.connected()) {
       char buf[192];
 
-      // Soil moisture (published every second)
+      // Soil moisture (published every second to terrawave namespace)
       snprintf(buf, sizeof(buf),
         "{\"sensorId\":\"%s\",\"soilMoisture\":%.1f,\"rawADC\":%d,"
         "\"timestamp\":%lu,\"source\":\"esp32\"}",
         DEVICE_ID, moisture, rawADC, (unsigned long)(now / 1000));
-      mqttClient.publish("irrigation/moisture", buf);
       mqttClient.publish("terrawave/irrigation/moisture", buf);
 
       // Tank level — always SENSOR_DISABLED (ultrasonic is damaged)
       const char* tankMsg = "{\"sensorId\":\"ESP32-S3-001\",\"tankLevel\":-1,\"waterLevelCm\":-1,\"status\":\"SENSOR_DISABLED\",\"source\":\"esp32\"}";
-      mqttClient.publish("irrigation/tank_level", tankMsg);
       mqttClient.publish("terrawave/irrigation/tank_level", tankMsg);
     }
 
