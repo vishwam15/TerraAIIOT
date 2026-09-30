@@ -68,30 +68,24 @@ class PumpController extends EventEmitter {
   async syncHardwarePumpStatus(pumpId, isOn) {
     let changed = false;
     if (pumpId === 'PUMP_1') {
-      // =====================================================================
-      // PUMP 1 IS MANUAL ONLY — hardware state sync to ON is ALWAYS BLOCKED.
-      // If the ESP32 ever reports FILL_ON (e.g. after reset with stale state,
-      // relay glitch, or reconnect), we immediately command it back OFF.
-      // This prevents ANY automatic turn-on via hardware MQTT echo.
-      // =====================================================================
-      if (isOn) {
-        console.warn('[SAFETY] PUMP 1 MANUAL-ONLY: ESP32 reported FILL_ON but no manual command was issued. Forcing FILL_OFF immediately.');
-        // Force hardware off
-        this.emit('mqtt_publish', { topic: 'irrigation/cmd', payload: 'FILL_OFF' });
-        // Ensure backend state stays OFF
-        if (this.pump1State) {
-          this.pump1State = false;
-          this.pump1StartTime = null;
-          changed = true;
+      // Pump 1 is purely manual: user controls it ON or OFF for any duration.
+      if (this.pump1State !== isOn) {
+        this.pump1State = isOn;
+        this.pump1StartTime = isOn ? (this.pump1StartTime || Date.now()) : null;
+        this.autoTankFillingActive = false;
+        changed = true;
+      }
+      // CRITICAL SAFETY RULE: Mutual exclusion enforcement
+      if (isOn && this.pump2State) {
+        console.warn('[SAFETY] Hardware sync: Pump 1 confirmed ON -> forcing Pump 2 OFF (Mutual Exclusion).');
+        this.pump2State = false;
+        this.pump2StartTime = null;
+        if (this.pump2Timer) {
+          clearTimeout(this.pump2Timer);
+          this.pump2Timer = null;
         }
-      } else {
-        // Sync OFF state normally
-        if (this.pump1State !== false) {
-          this.pump1State = false;
-          this.pump1StartTime = null;
-          this.autoTankFillingActive = false;
-          changed = true;
-        }
+        changed = true;
+        this.emit('mqtt_publish', { topic: 'irrigation/cmd', payload: 'PUMP_OFF' });
       }
     } else if (pumpId === 'PUMP_2') {
       if (this.pump2State !== isOn) {

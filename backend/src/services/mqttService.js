@@ -3,7 +3,6 @@ const EventEmitter = require('events');
 const SensorReading = require('../models/SensorReading');
 const PumpEvent = require('../models/PumpEvent');
 const pumpController = require('./pumpController');
-const simulator = require('./simulator');
 
 const MQTT_BROKER = process.env.MQTT_BROKER || 'mqtt://broker.hivemq.com:1883';
 
@@ -75,12 +74,6 @@ class MQTTService extends EventEmitter {
     try {
       this.lastSeenESP32 = Date.now();
       const cleanTopic = topic.startsWith('terrawave/') ? topic.slice('terrawave/'.length) : topic;
-      
-      // Auto-disable demo simulator when real hardware message arrives
-      if (simulator.isActive) {
-        console.log('[MQTT] Real ESP32 message detected! Disabling simulator to prevent fake data.');
-        simulator.stop();
-      }
 
       if (cleanTopic === 'irrigation/moisture') {
         const now = Date.now();
@@ -97,28 +90,29 @@ class MQTTService extends EventEmitter {
           data = { soilMoisture: parseFloat(rawMessage), source: 'esp32' };
         }
 
-        const moisture = Number(data.soilMoisture);
-        if (!isNaN(moisture) && moisture >= 0 && moisture <= 100) {
-          // Explicit Console Log as requested: [MQTT] Soil moisture received: 42.6%
-          console.log(`[MQTT] Soil moisture received: ${moisture.toFixed(1)}%`);
+        const moisture = Math.round(Number(data.soilMoisture) * 10) / 10;
+        const rawADC = (data.rawADC !== undefined && data.rawADC !== null) ? Number(data.rawADC) : null;
 
-          // Save real reading to MongoDB with explicit real hardware columns
+        if (!isNaN(moisture) && moisture >= 0 && moisture <= 100) {
+          console.log(`[MQTT] Soil moisture received: ${moisture.toFixed(1)}% (rawADC: ${rawADC !== null ? rawADC : 'N/A'})`);
+
+          // Save real reading to MongoDB
           const reading = await SensorReading.create({
             sensorId: data.sensorId || 'ESP32-S3-001',
-            soilMoisture: Math.round(moisture * 10) / 10,
-            realMoisture: Math.round(moisture * 10) / 10,
-            rawADC: data.rawADC,
+            soilMoisture: moisture,
+            realMoisture: moisture,
+            rawADC: rawADC,
             realData: true,
             isRealHardware: true,
             dataType: 'REAL_HARDWARE',
             sensorPin: 'GPIO_1',
-            tankLevel: pumpController.currentTankLevel,
-            source: data.source || 'esp32',
+            tankLevel: -1,
+            source: 'esp32',
             timestamp: new Date()
           });
 
-          // Trigger pump automation check
-          await pumpController.handleMoistureUpdate(moisture, null, data.source || 'esp32');
+          // Update in-memory state and trigger automation check
+          await pumpController.handleMoistureUpdate(moisture, null, 'esp32');
 
           // Notify frontend via WebSocket
           this.emit('telemetry', {

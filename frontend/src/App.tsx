@@ -21,7 +21,7 @@ export const App: React.FC = () => {
   const [currentMoisture, setCurrentMoisture] = useState<number>(38.4);
   const [rawADC, setRawADC] = useState<number>(2310);
   const [tankLevel, setTankLevel] = useState<number>(72);
-  const [source, setSource] = useState<'esp32' | 'DEMO DATA' | 'manual' | 'simulator'>('DEMO DATA');
+  const [source, setSource] = useState<string>('esp32');
   const [sensorHistory, setSensorHistory] = useState<SensorReading[]>([]);
   const [pumpStatus, setPumpStatus] = useState<PumpStatus>({
     pump1: { id: 'PUMP_1', name: 'Tank Filling Pump', gpio: 6, status: 'OFF', running: false, runtimeSeconds: 0 },
@@ -36,10 +36,8 @@ export const App: React.FC = () => {
   const [prediction, setPrediction] = useState<AIPredictionResult | null>(null);
   const [isPredicting, setIsPredicting] = useState<boolean>(false);
   const [isLive, setIsLive] = useState<boolean>(true);
-  const [simulatorActive, setSimulatorActive] = useState<boolean>(false);
-  const [noEchoActive, setNoEchoActive] = useState<boolean>(false);
-  const [esp32Status, setEsp32Status] = useState<string>('ONLINE');
-  const [mqttConnected, setMqttConnected] = useState<boolean>(true);
+  const [esp32Status, setEsp32Status] = useState<string>('OFFLINE');
+  const [mqttConnected, setMqttConnected] = useState<boolean>(false);
   const [notification, setNotification] = useState<string | null>(null);
   const [settings, setSettings] = useState<SettingsData>({
     autoStartThreshold: 30,
@@ -72,10 +70,9 @@ export const App: React.FC = () => {
         const initMoisture = Number(latestRes.data.soilMoisture);
         console.log(`[Frontend] Soil moisture updated: ${initMoisture.toFixed(1)}% (Initial Load)`);
         setCurrentMoisture(initMoisture);
-        setRawADC(latestRes.data.rawADC || 2300);
-        setTankLevel(latestRes.data.tankLevel);
-        setSource(latestRes.data.source || 'DEMO DATA');
-        setSimulatorActive(latestRes.data.simulatorActive || false);
+        if (latestRes.data.rawADC != null) setRawADC(latestRes.data.rawADC);
+        setSource(latestRes.data.source || 'esp32');
+        setEsp32Status(latestRes.data.esp32Status || 'OFFLINE');
       }
 
       if (statusRes.success && statusRes.data) {
@@ -123,24 +120,21 @@ export const App: React.FC = () => {
         if (data.pumps) setPumpStatus(data.pumps);
         if (data.esp32Status) setEsp32Status(data.esp32Status);
         if (data.mqttConnected !== undefined) setMqttConnected(data.mqttConnected);
-        if (data.simulatorActive !== undefined) setSimulatorActive(data.simulatorActive);
         if (data.latestSensor) {
           const m = Number(data.latestSensor.soilMoisture);
           if (!isNaN(m)) setCurrentMoisture(m);
           if (data.latestSensor.rawADC != null) setRawADC(data.latestSensor.rawADC);
-          if (data.latestSensor.tankLevel != null) setTankLevel(data.latestSensor.tankLevel);
-          if (data.latestSensor.source) setSource(data.latestSensor.source);
+          setSource('esp32');
         }
       } else if (type === 'SENSOR_UPDATE') {
         const moisture = Number(data.soilMoisture);
-        if (!isNaN(moisture)) {
-          // Explicit Console Log as requested: [Frontend] Soil moisture updated: 42.6%
+        if (!isNaN(moisture) && moisture >= 0 && moisture <= 100) {
           console.log(`[Frontend] Soil moisture updated: ${moisture.toFixed(1)}%`);
           setCurrentMoisture(moisture);
         }
         if (data.rawADC != null) setRawADC(data.rawADC);
-        if (data.tankLevel !== undefined && data.tankLevel !== null) setTankLevel(data.tankLevel);
-        if (data.source) setSource(data.source);
+        setSource('esp32');
+        setEsp32Status('ONLINE');
 
         setSensorHistory(prev => {
           const updated = [...prev, data];
@@ -174,15 +168,11 @@ export const App: React.FC = () => {
         ]);
         if (pRes.success) setPumpStatus(pRes.data);
         if (sRes.success && sRes.data) {
-          setEsp32Status(sRes.data.esp32Status || 'ONLINE');
+          setEsp32Status(sRes.data.esp32Status || 'OFFLINE');
           const m = Number(sRes.data.soilMoisture);
-          if (!isNaN(m)) {
-            setCurrentMoisture(m);
-          }
+          if (!isNaN(m) && m >= 0) setCurrentMoisture(m);
           if (sRes.data.rawADC != null) setRawADC(sRes.data.rawADC);
-          if (sRes.data.tankLevel !== undefined && sRes.data.tankLevel !== null) setTankLevel(sRes.data.tankLevel);
-          if (sRes.data.source) setSource(sRes.data.source);
-          if (sRes.data.simulatorActive !== undefined) setSimulatorActive(sRes.data.simulatorActive);
+          setSource('esp32');
         }
       } catch (e) {
         // silent
@@ -263,21 +253,7 @@ export const App: React.FC = () => {
     await api.updateSettings({ autoStartThreshold: threshold });
   };
 
-  const handleToggleSimulator = async () => {
-    const res = await api.toggleSimulator();
-    if (res.success) {
-      setSimulatorActive(res.active);
-      showNotification(`ESP32 Simulator ${res.active ? 'ACTIVATED' : 'STOPPED'}.`);
-    }
-  };
 
-  const handleToggleNoEcho = async () => {
-    const res = await api.toggleSimulatedNoEcho();
-    if (res.success) {
-      setNoEchoActive(res.noEcho);
-      showNotification(`Ultrasonic NO ECHO simulation ${res.noEcho ? 'ENABLED (-1)' : 'DISABLED'}.`);
-    }
-  };
 
   return (
     <div className="flex min-h-screen bg-gradient-to-br from-sky-50/70 via-white to-blue-50/50 text-slate-800 font-sans selection:bg-sky-200">
@@ -285,7 +261,7 @@ export const App: React.FC = () => {
       <Sidebar
         currentTab={currentTab}
         onSelectTab={setCurrentTab}
-        esp32Online={esp32Status === 'ONLINE' || simulatorActive}
+        esp32Online={esp32Status === 'ONLINE'}
         autoMode={pumpStatus.autoMode}
       />
 
@@ -295,10 +271,6 @@ export const App: React.FC = () => {
           currentTab={currentTab}
           source={source}
           isLive={isLive}
-          simulatorActive={simulatorActive}
-          noEchoActive={noEchoActive}
-          onToggleSimulator={handleToggleSimulator}
-          onToggleNoEcho={handleToggleNoEcho}
           esp32Status={esp32Status}
           mqttConnected={mqttConnected}
         />

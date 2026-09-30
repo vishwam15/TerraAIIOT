@@ -53,27 +53,8 @@ async function seedInitialData() {
       }
     }
 
-    // 3. Seed initial historical sensor readings if empty (for rich initial charts)
-    const sensorCount = await SensorReading.countDocuments();
-    if (sensorCount === 0) {
-      const initialReadings = [];
-      const now = Date.now();
-      let currentMoisture = 38;
-      for (let i = 60; i >= 0; i--) {
-        currentMoisture = Math.max(25, Math.min(65, currentMoisture + (Math.random() * 2 - 1.1)));
-        const rawADC = Math.round(3000 - (currentMoisture / 100) * (3000 - 1200));
-        initialReadings.push({
-          sensorId: 'ESP32-S3-001',
-          soilMoisture: Math.round(currentMoisture * 10) / 10,
-          rawADC: rawADC,
-          tankLevel: Math.round(72 + Math.sin(i / 10) * 5),
-          source: 'DEMO DATA',
-          timestamp: new Date(now - i * 5000)
-        });
-      }
-      await SensorReading.insertMany(initialReadings);
-      console.log(`[MongoDB] Seeded ${initialReadings.length} initial sensor history readings.`);
-    }
+    // 3. No artificial sensor readings seeded — Pure Hardware Mode only
+
 
     // 4. Seed initial pump event logs if empty
     const eventCount = await PumpEvent.countDocuments();

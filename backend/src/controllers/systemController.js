@@ -14,7 +14,7 @@ exports.getSystemStatus = async (req, res) => {
     const mlHealth = await mlClient.checkHealth();
     const mlStatus = mlHealth.status === 'healthy' ? 'Connected' : 'Error';
     const mqttStatus = mqttService.isConnected ? 'Connected' : 'Disconnected';
-    const esp32Status = mqttService.getESP32Status() === 'ONLINE' ? 'Connected' : (simulator.isActive ? 'Connected (Simulated)' : 'Disconnected');
+    const esp32Status = mqttService.getESP32Status() === 'ONLINE' ? 'Connected' : 'Disconnected';
     // Node-RED connects to MQTT, so if MQTT is up, Node-RED gateway channel is healthy
     const nodeRedStatus = mqttService.isConnected ? 'Connected' : 'Disconnected';
 
@@ -33,7 +33,7 @@ exports.getSystemStatus = async (req, res) => {
           mongodb: { name: 'MongoDB Database', status: mongoStatus, port: '27017', details: 'Collections & Indexes active' },
           mlService: { name: 'Python FastAPI ML Engine', status: mlStatus, port: '8000', details: `Active Model: ${mlHealth.active_model || 'RandomForestRegressor'}` }
         },
-        simulatorActive: simulator.isActive,
+        simulatorActive: false,
         recentLogs: recentLogs
       }
     });
@@ -82,32 +82,15 @@ exports.updateSettings = async (req, res) => {
 };
 
 exports.toggleSimulator = async (req, res) => {
-  try {
-    if (simulator.isActive) {
-      simulator.stop();
-    } else {
-      simulator.start();
-    }
-    await Settings.findOneAndUpdate({}, { simulatorActive: simulator.isActive });
-    res.json({ success: true, active: simulator.isActive });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
-  }
+  res.json({ success: false, active: false, message: 'Simulator permanently deactivated. Pure hardware mode active.' });
 };
 
 exports.setSimulatedMoisture = (req, res) => {
-  const { moisture } = req.body;
-  if (moisture !== undefined) {
-    simulator.setMoisture(Number(moisture));
-    res.json({ success: true, currentMoisture: simulator.moisture });
-  } else {
-    res.status(400).json({ success: false, error: 'moisture is required' });
-  }
+  res.json({ success: false, message: 'Simulator deactivated.' });
 };
 
 exports.toggleSimulatedNoEcho = (req, res) => {
-  const state = simulator.toggleNoEcho();
-  res.json({ success: true, noEcho: state });
+  res.json({ success: false, noEcho: false, message: 'Simulator deactivated.' });
 };
 
 // Node-RED Webhook Receiver

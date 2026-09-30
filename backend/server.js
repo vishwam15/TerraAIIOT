@@ -8,7 +8,6 @@ const os = require('os');
 const { connectDB } = require('./src/services/db');
 const mqttService = require('./src/services/mqttService');
 const pumpController = require('./src/services/pumpController');
-const simulator = require('./src/services/simulator');
 const apiRoutes = require('./src/routes/api');
 const { startMQTTProxy } = require('./src/services/mqttProxy');
 
@@ -66,18 +65,17 @@ function broadcast(eventType, payload) {
 pumpController.on('pump_change', (status) => broadcast('PUMP_STATUS_UPDATE', status));
 pumpController.on('ai_irrigation_started', (data) => broadcast('AI_IRRIGATION_STARTED', data));
 pumpController.on('cycle_completed', (data) => broadcast('IRRIGATION_CYCLE_COMPLETED', data));
-pumpController.on('simulated_telemetry', (reading) => broadcast('SENSOR_UPDATE', reading));
 
 mqttService.on('telemetry', ({ type, data }) => broadcast('SENSOR_UPDATE', data));
 mqttService.on('pump_status', (data) => broadcast('MQTT_PUMP_STATUS', data));
 mqttService.on('connection_change', (connected) => broadcast('MQTT_CONNECTION', { connected }));
 
 wss.on('connection', async (ws) => {
-  // Send current status and latest telemetry immediately upon connection
+  // Send current status and latest real hardware telemetry immediately upon connection
   let latestSensor = null;
   try {
     const SensorReading = require('./src/models/SensorReading');
-    latestSensor = await SensorReading.findOne().sort({ timestamp: -1 });
+    latestSensor = await SensorReading.findOne({ source: 'esp32' }).sort({ timestamp: -1 });
   } catch (e) {}
 
   ws.send(JSON.stringify({
@@ -88,12 +86,12 @@ wss.on('connection', async (ws) => {
       esp32Status: typeof mqttService.getESP32Status === 'function'
         ? mqttService.getESP32Status()
         : 'UNKNOWN',
-      simulatorActive: simulator.isActive,
+      simulatorActive: false,
       latestSensor: latestSensor ? {
         soilMoisture: latestSensor.soilMoisture,
         rawADC: latestSensor.rawADC,
         tankLevel: latestSensor.tankLevel,
-        source: latestSensor.source,
+        source: 'esp32',
         timestamp: latestSensor.timestamp
       } : null
     },

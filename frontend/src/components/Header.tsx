@@ -1,14 +1,10 @@
 import React from 'react';
-import { Play, Square, Wifi, AlertTriangle } from 'lucide-react';
+import { Wifi } from 'lucide-react';
 
 interface HeaderProps {
   currentTab: string;
   source: string;
   isLive: boolean;
-  simulatorActive: boolean;
-  noEchoActive: boolean;
-  onToggleSimulator: () => void;
-  onToggleNoEcho: () => void;
   esp32Status: string;
   mqttConnected: boolean;
 }
@@ -17,10 +13,7 @@ export const Header: React.FC<HeaderProps> = ({
   currentTab,
   source,
   isLive,
-  simulatorActive,
-  noEchoActive,
-  onToggleSimulator,
-  onToggleNoEcho,
+  esp32Status,
   mqttConnected
 }) => {
   const getTabTitle = (tab: string) => {
@@ -28,7 +21,7 @@ export const Header: React.FC<HeaderProps> = ({
       case 'dashboard': return 'Executive Overview';
       case 'live-monitoring': return 'Real-Time Telemetry & Gauges';
       case 'irrigation-control': return 'Dual Pump Controller & Safety';
-      case 'ai-prediction': return 'AI Runtime Prediction & Simulator';
+      case 'ai-prediction': return 'AI Runtime Prediction';
       case 'ml-analytics': return 'Supervised ML Model Analytics (Random Forest)';
       case 'model-comparison': return 'Multi-Model Benchmark & Selection';
       case 'irrigation-history': return 'Irrigation Logs & Post-Learning Data';
@@ -40,7 +33,7 @@ export const Header: React.FC<HeaderProps> = ({
     }
   };
 
-  const isDemo = source === 'DEMO DATA' || simulatorActive;
+  const isRealHardware = source === 'esp32';
 
   return (
     <header className="h-16 border-b border-sky-100/90 bg-white/75 backdrop-blur-2xl px-6 flex items-center justify-between sticky top-0 z-10 shadow-[0_2px_15px_rgba(2,132,199,0.03)]">
@@ -65,15 +58,25 @@ export const Header: React.FC<HeaderProps> = ({
           </span>
         </div>
 
-        {/* Data Source Label */}
-        <span className={`px-2.5 py-1 text-[11px] font-semibold rounded-full border shadow-xs transition-all ${isDemo
-            ? 'bg-amber-50 text-amber-700 border-amber-200/90'
-            : 'bg-emerald-50 text-emerald-700 border-emerald-200/90'
-          }`}>
-          {isDemo ? 'DEMO DATA' : 'LIVE DATA'}
+        {/* Data Source Label — always shows LIVE DATA since simulator is removed */}
+        <span className={`px-2.5 py-1 text-[11px] font-semibold rounded-full border shadow-xs transition-all ${
+          isRealHardware
+            ? 'bg-emerald-50 text-emerald-700 border-emerald-200/90'
+            : 'bg-slate-50 text-slate-500 border-slate-200/80'
+        }`}>
+          {isRealHardware ? 'HARDWARE' : 'NO DATA'}
         </span>
 
-        {/* MQTT Broker Status (Port 1883) */}
+        {/* ESP32 Status */}
+        <div className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/90 border border-sky-100 text-[11px] text-slate-700 shadow-xs">
+          <span className={`h-2 w-2 rounded-full ${esp32Status === 'ONLINE' ? 'bg-emerald-500' : 'bg-slate-300'}`} />
+          <span className="font-medium text-slate-500 font-mono">ESP32</span>
+          <span className={`text-[10px] font-mono px-1 rounded font-bold ${esp32Status === 'ONLINE' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-500'}`}>
+            {esp32Status === 'ONLINE' ? 'ONLINE' : 'OFFLINE'}
+          </span>
+        </div>
+
+        {/* MQTT Broker Status */}
         <div className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/90 border border-sky-100 text-[11px] text-slate-700 shadow-xs">
           <Wifi className={`h-3 w-3 ${mqttConnected ? 'text-sky-600' : 'text-slate-400'}`} />
           <span className="font-medium text-slate-500">MQTT</span>
@@ -81,32 +84,6 @@ export const Header: React.FC<HeaderProps> = ({
             1883
           </span>
         </div>
-
-        {/* Quick Simulator Toggle */}
-        <button
-          onClick={onToggleSimulator}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all duration-200 active:scale-95 border shadow-xs ${simulatorActive
-              ? 'bg-gradient-to-r from-sky-500 to-blue-600 text-white border-sky-400/50 shadow-sky-500/20'
-              : 'bg-white text-slate-700 border-sky-200/80 hover:bg-sky-50 hover:text-sky-700 hover:border-sky-300'
-            }`}
-          title="Toggle built-in ESP32 physical dynamics simulator"
-        >
-          {simulatorActive ? <Square className="h-3.5 w-3.5 fill-current" /> : <Play className="h-3.5 w-3.5 fill-current" />}
-          <span>{simulatorActive ? 'Sim Active' : 'Start Sim'}</span>
-        </button>
-
-        {/* Ultrasonic NO ECHO Simulation Toggle */}
-        <button
-          onClick={onToggleNoEcho}
-          className={`hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all duration-200 active:scale-95 border shadow-xs ${noEchoActive
-              ? 'bg-amber-100 text-amber-800 border-amber-300 shadow-xs'
-              : 'bg-white text-slate-600 border-sky-200/80 hover:bg-sky-50 hover:text-slate-900'
-            }`}
-          title="Toggle simulated HC-SR04 ultrasonic echo loss (-1)"
-        >
-          <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />
-          <span>{noEchoActive ? 'NO ECHO: ON' : 'Test NO ECHO'}</span>
-        </button>
       </div>
     </header>
   );
